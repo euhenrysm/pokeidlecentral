@@ -1,7 +1,10 @@
 @echo off
 rem Abre o PokeIdle Central sem precisar do PowerShell.
 cd /d "%~dp0"
-if not exist "node_modules\electron\package.json" (
+rem Primeira vez, ou dependencia nova depois de atualizar o codigo (ex.: QR code do painel no celular).
+if not exist "node_modules\qrcode-generator\package.json" set FALTA=1
+if not exist "node_modules\electron\package.json" set FALTA=1
+if defined FALTA (
   echo Instalando o app pela primeira vez, aguarde...
   call npm install
 )

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Abre o PokeIdle Central pelo código-fonte. Na primeira vez instala o que falta.
 cd "$(dirname "$(readlink -f "$0")")" || exit 1
-if [ ! -f node_modules/electron/package.json ]; then
+if [ ! -f node_modules/electron/package.json ] || [ ! -f node_modules/qrcode-generator/package.json ]; then
   echo "Instalando o app pela primeira vez, aguarde..."
   npm install || { echo "Falhou o npm install (precisa de Node 18+ e internet)."; exit 1; }
 fi
