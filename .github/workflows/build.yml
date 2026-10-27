@@ -1,6 +1,6 @@
 # Gera os instaladores do Windows (NSIS) e do Linux (AppImage e .deb) e publica nas Releases.
 # Dispara ao enviar uma tag "v*" (ex.: v0.3.0) ou à mão pela aba Actions (Run workflow). Nos dois casos publica:
-# o electron-builder cria a Release e a tag v<versão do package.json> se ainda não existirem.
+# o primeiro job cria a tag e a Release v<versão do package.json> se ainda não existirem, e os instaladores sobem nela.
 # O electron-updater dos apps instalados lê o latest.yml (Windows) e o latest-linux.yml (AppImage) desta release.
 name: Instaladores
 
@@ -23,14 +23,23 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: npm run check
       # O GitHub só publica Release com tag existente: cria a tag v<versão> no commit atual, se ainda não houver.
-      - name: Tag da versão
+      # E cria a Release aqui, antes dos instaladores: o electron-builder sobe vários arquivos ao mesmo tempo e,
+      # sem Release, cada envio criava a sua (saíam duas Releases com a mesma tag, cada uma com parte dos arquivos).
+      - name: Tag e Release da versão
         shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           v="v$(node -p "require('./package.json').version")"
           if git ls-remote --exit-code --tags origin "refs/tags/$v" >/dev/null; then
             echo "A tag $v já existe."
           else
             git tag "$v" && git push origin "$v"
+          fi
+          if gh release view "$v" >/dev/null 2>&1; then
+            echo "A Release $v já existe."
+          else
+            gh release create "$v" --title "$v" --notes "Novidades no cartão do app. Baixe o .exe (Windows) ou o .AppImage/.deb (Linux) abaixo."
           fi
 
   windows:
