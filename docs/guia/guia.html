@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Como instalar o PokéIdle Central</title>
+<link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4; margin: 14mm 13mm 16mm; }
+  :root { --verde: #d9f56b; --texto: #1b1d17; --suave: #5d6156; --borda: #e2e4dc; --fundo2: #f1f2ed; --aviso: #fdf3dc; --aviso-t: #8a5a00; }
+  * { box-sizing: border-box; }
+  body { font-family: 'Urbanist', system-ui, sans-serif; color: var(--texto); font-size: 10.5pt; line-height: 1.5; margin: 0; }
+  h1 { font-size: 25pt; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 6px; }
+  .lead { color: var(--suave); margin: 0 0 12px; max-width: 135mm; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .chip { background: var(--fundo2); border-radius: 999px; padding: 4px 11px; font-size: 9pt; font-weight: 500; }
+  .indice { display: inline-flex; gap: 20px; border: 1px solid var(--borda); border-radius: 999px; padding: 8px 18px; font-size: 9pt; font-weight: 500; margin-bottom: 14px; }
+  .passo { border: 1px solid var(--borda); border-radius: 14px; padding: 16px 18px 14px 62px; position: relative; margin-bottom: 12px; break-inside: avoid; }
+  .passo.longo { break-inside: auto; }
+  .num { position: absolute; left: 16px; top: 16px; width: 30px; height: 30px; border-radius: 50%; background: var(--verde); display: grid; place-items: center; font-weight: 700; font-size: 11pt; }
+  .passo h2 { font-size: 14pt; font-weight: 700; margin: 0; }
+  .sub { color: var(--suave); font-size: 9pt; margin: 0 0 8px; }
+  .etiqueta { float: right; font-size: 8pt; background: var(--fundo2); border-radius: 999px; padding: 2px 9px; color: var(--suave); }
+  ol { margin: 6px 0; padding-left: 18px; }
+  li { margin: 3px 0; }
+  code, .url { font-family: 'JetBrains Mono', ui-monospace, Consolas, monospace; font-size: 8.8pt; font-weight: 600; }
+  .url { display: block; background: var(--fundo2); border-radius: 8px; padding: 9px 12px; margin: 6px 0 8px; }
+  .bt { display: inline-block; border: 1px solid #cfd2c6; background: #f7f8f3; border-radius: 6px; padding: 0 7px; font-size: 8.5pt; font-weight: 600; line-height: 1.7; }
+  .bt.v { background: var(--verde); border-color: #c4e04f; }
+  .nota { background: var(--fundo2); border-radius: 10px; padding: 9px 12px; margin-top: 8px; color: var(--suave); }
+  .nota b { color: var(--texto); }
+  .nota.aviso { background: var(--aviso); }
+  .nota.aviso b:first-child { color: var(--aviso-t); display: block; }
+  .quebra { break-before: page; }
+  h3 { break-before: page; font-size: 15pt; font-weight: 800; margin: 18px 0 8px; }
+  .prob { margin-bottom: 10px; break-inside: avoid; }
+  .prob > b { display: block; }
+  .prob p { margin: 2px 0; color: var(--suave); }
+  .final { border: 1px solid var(--borda); border-radius: 12px; padding: 10px 14px; margin-top: 14px; }
+</style>
+</head>
+<body>
+
+<h1>Como instalar o PokéIdle Central</h1>
+<p class="lead">Do download até a primeira conta logada, em uns 5 minutos. O app é grátis e de código aberto: não tem ativação nem código para pedir. Faça os passos na ordem; o passo 4 só é preciso se você entra no jogo com conta Google.</p>
+<div class="chips"><span class="chip">Windows 10 ou 11 (ou Linux)</span><span class="chip">Internet</span><span class="chip">Grátis, sem ativação</span></div>
+<div class="indice"><span>1 · Baixar</span><span>2 · Instalar</span><span>3 · Contas</span><span>4 · Extensão</span><span>Celular</span><span>Problemas</span></div>
+
+<div class="passo"><div class="num">1</div>
+  <h2>Baixar o instalador</h2>
+  <p class="sub">Pelo navegador do computador</p>
+  <ol>
+    <li>Abra este link no computador (não no celular):</li>
+  </ol>
+  <span class="url">https://github.com/euhenrysm/pokeidlecentral/releases/latest</span>
+  <ol start="2">
+    <li>Desça até <b>Assets</b> e clique no arquivo que termina em <code>.exe</code>, por exemplo <code>PokeIdle-Central-Setup-0.3.2.exe</code>. No Linux, baixe o <code>.AppImage</code> ou o <code>.deb</code> (veja o quadro do Linux na página 3).</li>
+    <li>Espere o download terminar. São uns 110 MB.</li>
+  </ol>
+  <div class="nota aviso"><b>O navegador avisou que o arquivo "não é baixado com frequência"?</b>
+  É normal para programas novos. No Chrome, clique em <span class="bt">Manter</span>. No Edge, clique nos <span class="bt">…</span> do download, depois em <span class="bt">Manter</span> e em <span class="bt">Manter assim mesmo</span>.</div>
+</div>
+
+<div class="passo"><div class="num">2</div>
+  <h2>Instalar</h2>
+  <p class="sub">Leva uns 20 segundos</p>
+  <ol>
+    <li>Abra a pasta <b>Downloads</b> e dê dois cliques no arquivo que você baixou.</li>
+    <li>Se aparecer a tela azul <b>"O Windows protegeu o computador"</b>, clique em <span class="bt">Mais informações</span> e depois em <span class="bt">Executar assim mesmo</span>.</li>
+    <li>Pronto: ele instala sozinho, sem perguntar nada, e já abre. Na área de trabalho fica o atalho <b>PokeIdle Central</b>.</li>
+  </ol>
+  <div class="nota"><b>Por que o aviso azul?</b> O Windows mostra esse aviso para todo programa que ainda não tem assinatura digital paga. Ele não quer dizer que o arquivo tem vírus — e o código do app inteiro está aberto no GitHub para quem quiser conferir.</div>
+</div>
+
+<div class="passo"><div class="num">3</div>
+  <h2>Entrar nas suas contas</h2>
+  <p class="sub">Na aba Config, até 4 contas</p>
+  <ol>
+    <li>Clique na aba <span class="bt">Config</span>, no topo do app.</li>
+    <li>No quadro <b>Conta 1</b>, na linha <b>PokéIdle</b>, digite o e-mail e a senha do jogo e clique em <span class="bt">Salvar</span>.</li>
+    <li>Clique em <span class="bt">Entrar</span>. O app abre o jogo e preenche tudo para você.</li>
+    <li>Faça a verificação "não sou um robô" e clique no botão de entrar do jogo. Essa parte é sempre sua.</li>
+    <li>Repita para a <b>Conta 2</b>, a <b>Conta 3</b> e a <b>Conta 4</b>, se tiver.</li>
+  </ol>
+  <div class="nota"><b>Twitch e Kick são opcionais.</b> Preencha só se quiser o bônus de XP das lives. A senha fica guardada criptografada pelo sistema e nunca aparece de volta na tela. Se preferir, deixe a senha em branco e faça o login na mão: ele fica salvo do mesmo jeito.</div>
+  <div class="nota aviso"><b>Entra no jogo com conta Google?</b>
+  O Google não deixa fazer login com conta Google dentro de programas. Para essas contas, faça o passo 4.</div>
+</div>
+
+<div class="passo longo"><div class="num">4</div>
+  <span class="etiqueta">só para conta Google</span>
+  <h2>Extensão do navegador</h2>
+  <p class="sub">Usa o login que já está no seu Chrome, Edge, Brave, Opera ou Vivaldi</p>
+  <p style="margin:4px 0"><b>Instalar a extensão (uma vez)</b></p>
+  <ol>
+    <li>Na área de trabalho, clique com o botão direito no atalho <b>PokeIdle Central</b> e escolha <span class="bt">Abrir local do arquivo</span>.</li>
+    <li>Na pasta que abrir, dê dois cliques em <b>INSTALAR EXTENSAO NO CHROME</b>. (No Linux: <code>./INSTALAR-EXTENSAO.sh</code>.)</li>
+    <li>Na janela preta, digite o número do navegador que você usa e aperte <span class="bt">Enter</span>. Ele abre a página de extensões e já copia o caminho da pasta.</li>
+    <li>Na página de extensões, ligue o <span class="bt">Modo do desenvolvedor</span>, no canto da página.</li>
+    <li>Clique em <span class="bt">Carregar sem compactação</span>. É o primeiro botão; não clique em "Compactar extensão".</li>
+    <li>Na janela que abrir, clique na barra de endereço, aperte <span class="bt">Ctrl</span> + <span class="bt">V</span> e depois <span class="bt">Selecionar pasta</span>.</li>
+    <li>Pronto: aparece o cartão <b>PokéIdle Central - Autorizar sessão</b>.</li>
+  </ol>
+  <div class="nota"><b>Usa mais de um perfil no navegador?</b> Faça esses passos na janela de cada perfil que você for usar.</div>
+  <p style="margin:10px 0 4px"><b>Levar o login do navegador para o app</b></p>
+  <ol>
+    <li>No app, aba <span class="bt">Config</span>, escolha em <b>"Pelo navegador" abre em</b> o navegador e o perfil daquela conta.</li>
+    <li>Clique em <span class="bt">Pelo navegador</span> na linha PokéIdle. O site do jogo abre no navegador.</li>
+    <li>Entre com a conta Google, se ainda não estiver logado.</li>
+    <li>Aparece um aviso da extensão: clique em <span class="bt v">Autorizar</span>. A conta aparece logada no app.</li>
+  </ol>
+  <div class="nota aviso"><b>Tem mais de uma conta Google no mesmo navegador?</b>
+  Antes de clicar em <span class="bt v">Autorizar</span>, marque "tirar a sessão deste navegador". Assim o navegador fica livre para você entrar com a próxima conta. E não clique em Sair no navegador numa conta que já foi para o app: isso desconecta o app também.</div>
+</div>
+
+<div class="passo"><div class="num">📱</div>
+  <span class="etiqueta">opcional</span>
+  <h2>Painel no celular</h2>
+  <p class="sub">Ver e controlar as contas pelo celular, na mesma rede Wi-Fi</p>
+  <ol>
+    <li>Na aba <span class="bt">Config</span>, ligue o <b>Painel no celular</b>.</li>
+    <li>Aponte a câmera do celular para o QR code que aparece. A página abre no navegador do celular.</li>
+    <li>Em cada conta, <span class="bt">Controlar</span> deixa trocar a hunt, o pokémon ativo e o time, usar itens da mochila, ir ao Centro e ligar o sniper e a captura. Tudo acontece no PC na hora.</li>
+  </ol>
+  <div class="nota"><b>O QR code é como uma senha.</b> Não mande para ninguém. Se achar que alguém pegou, clique em <span class="bt">Gerar novo código</span>: quem estiver usando o código antigo cai na hora.</div>
+</div>
+
+<div class="passo"><div class="num">🐧</div>
+  <span class="etiqueta">Linux</span>
+  <h2>Instalar no Linux</h2>
+  <p class="sub">Ubuntu, Debian, Mint, Fedora e outros</p>
+  <ol>
+    <li><b>.deb</b> (Ubuntu, Debian, Mint): dê dois cliques no arquivo ou rode <code>sudo apt install ./PokeIdle-Central-0.3.2-linux.deb</code>.</li>
+    <li><b>.AppImage</b> (qualquer distribuição): clique com o botão direito → Propriedades → marque "Permitir executar", ou rode <code>chmod +x</code> no arquivo, e abra.</li>
+    <li>Se o AppImage não abrir no Ubuntu 24.04 ou mais novo, abra pelo terminal com <code>--no-sandbox</code> no fim.</li>
+  </ol>
+  <div class="nota"><b>Senhas no Linux:</b> para salvar a senha na Config, o sistema precisa de um chaveiro (GNOME Keyring ou KWallet). Sem ele, faça o login na mão uma vez: fica salvo do mesmo jeito.</div>
+</div>
+
+<div class="passo"><div class="num">✓</div>
+  <h2>Atualizações</h2>
+  <p class="sub">Não precisa baixar de novo</p>
+  <p style="margin:4px 0">O app procura versão nova sozinho ao abrir e a cada 6 horas, e baixa em segundo plano. Quando estiver pronta, aparece no topo <span class="bt v">Reiniciar e atualizar</span>. Se você não clicar, ela instala quando você fechar o app.</p>
+  <p style="margin:4px 0">Para procurar na hora: aba <b>Config</b> → <span class="bt">Procurar atualização</span>.</p>
+  <p style="margin:4px 0">Logins e regras do sniper continuam depois de atualizar. No Linux com <code>.deb</code>, baixe a versão nova e instale por cima.</p>
+</div>
+
+<h3>Se algo não funcionar</h3>
+<div class="prob"><b>A verificação "não sou um robô" não aparece</b><p>Abra a aba <b>Jogo</b> e clique na conta: a verificação só carrega com o jogo visível na tela.</p></div>
+<div class="prob"><b>O aviso "Autorizar" da extensão não aparece</b><p>O app precisa estar aberto. Na página de extensões, confira se a <b>PokéIdle Central - Autorizar sessão</b> está ligada. Depois de uma atualização do app, clique no ↻ do cartão da extensão.</p></div>
+<div class="prob"><b>O celular não abre o painel</b><p>O celular e o PC precisam estar na mesma rede Wi-Fi. Se o Windows perguntar sobre o firewall na primeira vez, permita em <b>Redes privadas</b>.</p></div>
+<div class="prob"><b>O app não abre, ou abre e fecha</b><p>Abra o app uma vez só: se ele já estiver aberto (confira na barra de tarefas, embaixo), clicar no atalho de novo só traz a janela para frente.</p></div>
+
+<div class="final"><b>Ainda com dúvida ou achou um problema?</b> Abra um aviso em <code>github.com/euhenrysm/pokeidlecentral/issues</code>, com um print da tela e o que aparece na aba Registro.</div>
+
+</body>
+</html>

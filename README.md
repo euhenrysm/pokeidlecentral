@@ -32,6 +32,8 @@ Para Windows e Linux. Grátis e de código aberto.
 
 ## Instalação
 
+📄 **Passo a passo com imagens:** [Guia de instalação (PDF)](docs/Guia-de-instalacao-PokeIdle-Central.pdf)
+
 ### Windows
 
 1. Baixe `PokeIdle-Central-Setup-X.Y.Z.exe` na página [Releases](https://github.com/euhenrysm/pokeidlecentral/releases).
