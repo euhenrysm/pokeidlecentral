@@ -27,7 +27,7 @@ Para Windows e Linux. Grátis e de código aberto.
 | **Hunts** | Todas as hunts por XP, ouro e abates, com vantagem de tipo, risco e caminho de up para o seu pokémon, com o catálogo de espécies do próprio jogo. |
 | **Mercado** | Preços dos itens raros com a hora de cada leitura, radar de ofertas abaixo da média, histórico das suas compras e as vendas das últimas 24 h. |
 | **Lives** | Quem está ao vivo, abertura automática, "Abrir só Twitch/Kick" e conferência periódica para o player não travar. |
-| **Painel no celular** | Os números das contas e o controle de cada conta (hunt, time, mochila, Centro, sniper e captura) no celular, pela rede Wi-Fi de casa, com QR code e código de acesso. |
+| **Painel no celular** | Todas as abas do app no celular (contas, hunts, mercado, lives, registro e config) e o controle de cada conta (hunt, time, mochila, Centro, sniper, captura), pela rede Wi-Fi de casa ou de qualquer lugar pelo Tailscale, com QR code e código de acesso. |
 | **Config** | Logins por conta (PokéIdle, Twitch e Kick), login pelo navegador para contas Google, escala da interface e som. |
 
 ## Instalação
@@ -134,22 +134,40 @@ Os nomes de alguns campos do jogo ainda estão sendo calibrados: o app salva os 
 
 ## Painel no celular
 
-Na aba **Config**, ligue o **Painel no celular** para ver os números das contas no celular: pokémon em campo, ouro, XP/h, abates, capturas e drops raros. Cada conta também pode ser controlada pelo celular (veja abaixo).
+Na aba **Config**, ligue o **Painel no celular** para usar as abas do app no celular, como um controle remoto: os números das contas, a análise de hunts, o mercado, as lives, o registro e a configuração. Cada conta também pode ser controlada pelo celular (veja abaixo).
 
 - **Desligado por padrão.** Ligado, a Config mostra o endereço (`http://IP-do-computador:47740`) e um QR code. Aponte a câmera do celular para o QR: o código de acesso vai dentro dele, então não precisa digitar nada.
-- **Só na mesma rede Wi-Fi**, com o app aberto. A porta é a 47740 (se estiver ocupada, a 47741 até a 47745). O Windows pode pedir para liberar o app no firewall: aceite para redes privadas.
-- **O QR é como uma senha.** Quem tiver o QR vê os números das suas contas e pode controlá-las (trocar hunt, time, usar itens, ir ao Centro, ligar sniper e captura). Não vê senhas nem logins. Não divulgue o QR. Para trocar o acesso, clique em **Gerar novo código**: o QR antigo deixa de valer na hora e derruba quem estiver usando a página. Ao abrir o app com o painel ligado, um código novo também é gerado.
+- **Em casa, na mesma rede Wi-Fi**, com o app aberto. A porta é a 47740 (se estiver ocupada, a 47741 até a 47745). O Windows pode pedir para liberar o app no firewall: aceite para redes privadas.
+- **Fora de casa, pelo Tailscale.** Instale o [Tailscale](https://tailscale.com/download) (grátis para uso pessoal) no PC e no celular e entre com a mesma conta nos dois. A Config passa a mostrar um segundo QR, **Fora de casa (Tailscale)**: escaneie esse e o painel abre no 4G, de qualquer lugar. O Tailscale é uma rede privada só entre os seus aparelhos: o painel não fica exposto na internet. Se não abrir, libere o PokeIdle Central no firewall do Windows também para redes públicas (a rede do Tailscale pode aparecer assim).
+- **Atalho na tela inicial.** Depois de abrir pelo QR, use "Adicionar à tela inicial" no navegador do celular. O código fica guardado no celular e no PC (cifrado pelo sistema), então o atalho continua valendo depois de fechar e abrir o app.
+- **O QR é como uma senha.** Quem tiver o QR vê os números das suas contas e pode controlá-las (trocar hunt, time, usar itens, ir ao Centro, ligar sniper e captura). Não vê senhas nem logins. Não divulgue o QR. Para trocar o acesso, clique em **Gerar novo código**: o QR antigo deixa de valer na hora e derruba quem estiver usando a página (escaneie o novo).
 - Os números atualizam a cada 3 s. Se o app fechar ou o painel for desligado, a página mostra "Desconectado".
+
+### Telas do celular
+
+A barra de baixo da página tem as telas do app:
+
+- **Contas**: um cartão por conta, com o que o Dashboard do PC mostra: nível, ouro e gemas, XP/h e ouro/h, abates, pokémon em campo com HP, hunt atual, drops raros, gasto da sessão, shinies, fila do sniper, bônus de XP e o último disparo. O botão **Controlar** abre a conta (veja abaixo).
+- **Hunts**: a análise de hunts de cada conta, a mesma da aba Hunts do PC. Escolha a conta e a região (as trancadas aparecem com cadeado), ordene por XP/h, ouro/h ou nível, e toque em **Ir para esta hunt** (confirma antes). **Analisar agora** pede ao jogo uma análise nova.
+- **Mercado**: os preços dos itens raros com a hora da leitura, em Coins e em Gemas, com a média de 7 dias. Mostra as ofertas que o radar achou (só para ver) e as últimas 50 compras. Pelo celular dá para ligar e desligar o **radar de ofertas** e mudar as opções dele (conta, desconto, moeda, vendas mínimas, atualização automática e minutos), com as mesmas faixas do PC. Comprar e aprovar oferta continuam só no PC.
+- **Lives**: quem está no ar, com **Abrir só Twitch**, **Abrir só Kick**, **Abrir todas** e **Assistir** em cada live. Também escolhe a conta que abre as lives, a qualidade da Twitch, e liga ou desliga **Abrir sozinha** e **Conferir a cada 5 min**.
+- **Registro**: as últimas 100 linhas do registro de cada conta, ou de todas juntas. Só leitura.
+- **Config**: escala da interface, som de cada conta (mudo ou não) e a versão do app. Logins, senhas e e-mails não aparecem e não mudam pelo celular.
+
+A análise de hunts, o registro e o mercado chegam ao celular quando mudam (e o mercado a cada 30 s, para a hora da leitura). Ao abrir cada tela, a página pede os dados dela na hora.
 
 ### Controlar pelo celular
 
-Na página do celular, cada conta tem o botão **Controlar**, que abre a conta com estas abas:
+Na tela **Contas**, cada conta tem o botão **Controlar**, que abre a conta com estas abas:
 
 - **Hunt**: as hunts liberadas pelo nível do treinador, com busca. A atual vem marcada. Toque numa hunt e confirme para trocar.
 - **Time**: o time (com **Ativar** para o pokémon ativo) e o depósito (com **Pôr no time**, pelos de maior nível).
 - **Mochila**: itens com busca. **Usar** e **Descartar** (com a quantidade que você escolher) pedem confirmação. Bolas aparecem só com a quantidade; elas não são descartadas pelo celular.
 - **Centro**: **Ir ao Centro** e **Curar**.
-- **Automação**: liga e desliga o **Sniper** e a **Captura** daquela conta, pelos mesmos interruptores da central.
+- **Sniper**: liga e desliga o sniper da conta e mostra as regras (com o teto em Coins ou Gemas, o limite e quantas já foram compradas). Ligar ou pausar uma regra, apagar (com confirmação) e **Editar** funcionam. **Nova regra de item** abre o formulário: busque o item na lista do Mercado da Comunidade, escolha teto fixo ou abaixo da média, e salve. Em regra de pokémon, dá para editar só o teto e o limite; criar regra de pokémon fica no PC. As opções gerais (margem após liberar e varredura do mercado) valem para todas as contas.
+- **Captura**: liga e desliga, escolhe o modo (até capturar ou pra sempre) e a bola usada, e configura a reposição de bola e de poção na loja do jogo (ligar, o que comprar, abaixo de quanto, quanto, e o limite de compras). Mostra o que a captura está fazendo, como no PC.
+
+As mudanças valem na hora no PC: o que você muda no celular aparece nas abas Sniper, Captura, Hunts, Mercado, Lives e Config da central.
 
 Cada ação mostra na hora se a central confirmou ou por que recusou (conta sem conexão, hunt bloqueada, time cheio, item sem quantidade). Não há compra nem venda no mercado pelo celular. As ações valem para a conta que está logada no jogo, então quem acompanha o PC vê a mudança na hora.
 

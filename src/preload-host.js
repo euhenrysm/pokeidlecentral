@@ -33,6 +33,8 @@ contextBridge.exposeInMainWorld('central', {
   novoCodigoCelular: () => ipcRenderer.invoke('celular:novoCodigo'),
   infoCelular: () => ipcRenderer.invoke('celular:info'),
   enviarSnapshotCelular: (dados) => ipcRenderer.send('celular:snapshot', dados),
+  enviarCatalogoCelular: (lista) => ipcRenderer.send('celular:catalogo', lista),
+  enviarDetalheCelular: (dados) => ipcRenderer.send('celular:detalhe', dados),
   onAcaoCelular: (cb) => ipcRenderer.on('celular:acao', (_e, dados) => cb(dados)),
   responderAcaoCelular: (r) => ipcRenderer.send('celular:acaoResposta', r),
   historicoCompras: () => ipcRenderer.invoke('historico:compras'),

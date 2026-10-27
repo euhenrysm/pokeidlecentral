@@ -1,5 +1,5 @@
 // Processo principal: janela da central, sessões isoladas das 4 contas e configuração.
-const { app, BrowserWindow, ipcMain, shell, session, net, screen } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, session, net, screen, safeStorage } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -61,8 +61,8 @@ const DEFAULT_CONFIG = {
   // Posição e tamanho da janela da central ao fechar (null = ainda não salvou).
   janela: null,
   sorteios: [],
-  // Painel no celular (página só de leitura na rede local). Desligado por padrão. O código de acesso
-  // não fica aqui: ele muda a cada ligada e só existe na memória do processo.
+  // Painel no celular (controle das contas pela rede local ou pelo Tailscale). Desligado por padrão. O código de acesso
+  // não fica aqui: fica cifrado em painel-celular.codigo (userData) e só muda em "Gerar novo código".
   painelCelular: { ativo: false }
 };
 
@@ -558,6 +558,23 @@ app.on('before-quit', () => painelCelular.desligar());
 // Cartão de novidades: true quando é a primeira abertura nesta pasta de dados.
 ipcMain.handle('config:nova', () => configNova);
 
+// Código do painel no celular: guardado cifrado pelo sistema (DPAPI no Windows, chaveiro no Linux) para o atalho
+// do celular continuar valendo entre aberturas. Sem criptografia disponível, não grava (o código vale só na sessão).
+const arquivoCodigoCelular = () => path.join(app.getPath('userData'), 'painel-celular.codigo');
+painelCelular.definirGuardaToken({
+  ler() {
+    try {
+      if (!safeStorage.isEncryptionAvailable()) return null;
+      return safeStorage.decryptString(fs.readFileSync(arquivoCodigoCelular()));
+    } catch { return null; }
+  },
+  gravar(t) {
+    if (!safeStorage.isEncryptionAvailable()) return;
+    if (process.platform === 'linux' && typeof safeStorage.getSelectedStorageBackend === 'function' && safeStorage.getSelectedStorageBackend() === 'basic_text') return;
+    fs.writeFileSync(arquivoCodigoCelular(), safeStorage.encryptString(t));
+  }
+});
+
 // Painel no celular: o interruptor liga e desliga o servidor da rede local e grava só o estado (nunca o código).
 function gravarPainelCelular(ligado) {
   config = { ...config, painelCelular: { ativo: ligado === true } };
@@ -573,6 +590,14 @@ ipcMain.handle('celular:info', () => painelCelular.estado());
 // Snapshot dos números das contas, a cada 3 s enquanto o painel está ligado. Só a janela principal manda.
 ipcMain.on('celular:snapshot', (e, dados) => {
   if (win && !win.isDestroyed() && e.sender === win.webContents) painelCelular.guardarSnapshot(dados);
+});
+// Catálogo do RMT (itens que o seletor do PC mostra): a central manda quando monta ou muda, e o celular busca.
+ipcMain.on('celular:catalogo', (e, lista) => {
+  if (win && !win.isDestroyed() && e.sender === win.webContents) painelCelular.guardarCatalogo(lista);
+});
+// Detalhes sob demanda (análise de hunts, registro e mercado): a central manda quando mudam.
+ipcMain.on('celular:detalhe', (e, dados) => {
+  if (win && !win.isDestroyed() && e.sender === win.webContents) painelCelular.guardarDetalhe(dados);
 });
 // Ações pedidas pelo celular: a janela principal (central) executa e confirma. Sem resposta em 4,5 s, a
 // recusa sai daqui (o painel espera 5 s no máximo, então a página sempre recebe um motivo).

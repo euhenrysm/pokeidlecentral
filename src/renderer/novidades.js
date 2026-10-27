@@ -2,6 +2,15 @@
 // viu (uma vez por versão). Para a próxima atualização: acrescente a versão no topo da lista.
 window.NOVIDADES = [
   {
+    versao: '0.3.3',
+    itens: [
+      ['O app inteiro no celular', 'O painel no celular virou um controle remoto: telas de Contas, Hunts, Mercado, Lives, Registro e Config, e em cada conta o Sniper completo (criar, editar, pausar e apagar regras), a Captura com a reposição, além de hunt, time, mochila e Centro. Tudo acontece no PC na hora.'],
+      ['Fora de casa', 'Com o Tailscale (grátis) no PC e no celular, a Config mostra um segundo QR, "Fora de casa": o painel abre no 4G, de qualquer lugar, sem ficar exposto na internet.'],
+      ['Atalho que não expira', 'O código do painel continua o mesmo ao fechar e abrir o app, então o atalho na tela inicial do celular segue valendo. Só muda em "Gerar novo código".'],
+      ['Guia de instalação', 'Guia em PDF atualizado no GitHub, com o painel no celular e o Linux.']
+    ]
+  },
+  {
     versao: '0.3.2',
     itens: [
       ['Controle pelo celular', 'No painel do celular, o botão Controlar em cada conta: trocar a hunt, ativar pokémon ou pôr no time, usar e descartar itens da mochila, ir ao Centro e curar, e ligar ou desligar o sniper e a captura. Tudo acontece na conta, no PC, na hora. Compra e venda no mercado ficam fora do celular.'],

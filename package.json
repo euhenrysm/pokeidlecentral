@@ -1,6 +1,6 @@
 {
   "name": "pokeidle-central",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Central para Windows e Linux: 4 contas do PokéIdle lado a lado, sniper do Mercado da Comunidade e painel de lives. Projeto independente, não oficial.",
   "main": "src/main.js",
   "license": "GPL-3.0-only",

@@ -4,6 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0f1011">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="PokéIdle">
   <title>PokéIdle Central</title>
   <style>
     /* Cores do tema da central (styles.css, :root). A página não carrega nada de fora. */
@@ -217,6 +221,71 @@
     }
     .caixa p { margin: 0 0 14px; }
     .botoes { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+    /* Sniper e captura (abas) */
+    .campos { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+    .campos label { display: flex; flex-direction: column; gap: 4px; min-width: 0; color: var(--suave); font-size: 12px; }
+    .campos label.linha-check { flex-direction: row; align-items: center; color: var(--texto); font-size: 13px; }
+    .campos input[type="number"], .campos select, .form-regra select { width: 100%; }
+    select {
+      width: 100%; min-height: 40px; padding: 8px 10px; border-radius: 10px;
+      border: 1px solid var(--borda-forte); background: var(--painel-2);
+      color: var(--texto); font: inherit;
+    }
+    input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--destaque); }
+    .campos-bloco { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+    .dica { margin: 0; color: var(--suave); font-size: 12px; overflow-wrap: anywhere; }
+    .botoes-form { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+    .form-regra {
+      display: flex; flex-direction: column; gap: 10px; min-width: 0;
+      padding: 12px; border-radius: 14px; background: var(--painel-2); border: 1px solid var(--destaque);
+    }
+    .fr-lista { max-height: 260px; overflow-y: auto; }
+    .bloco-rep {
+      display: flex; flex-direction: column; gap: 8px; min-width: 0;
+      padding: 12px; border-radius: 14px; background: var(--painel-2); border: 1px solid var(--borda);
+    }
+    .item-pk.pausada { opacity: .6; }
+
+    /* Navegação principal (rodapé) e telas: contas, hunts, mercado, lives, registro e config */
+    main { padding-bottom: 96px; }
+    body.controlando .abas-principais { display: none; }
+    body.controlando main { padding-bottom: 28px; }
+    .abas-principais {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 2;
+      display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px;
+      padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+      background: var(--painel); border-top: 1px solid var(--borda);
+    }
+    .abas-principais button {
+      min-height: 52px; min-width: 0; padding: 4px 2px; border: 0; border-radius: 12px;
+      background: transparent; color: var(--suave); font: inherit; font-size: 12px; font-weight: 700;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;
+    }
+    .abas-principais button[aria-pressed="true"] { background: var(--painel-3); color: var(--destaque); }
+    .tela { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+    .grade-botoes { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
+    .grade-botoes .btn { min-height: 48px; }
+    .opcao {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      min-height: 48px; padding: 10px 12px; border-radius: 14px;
+      background: var(--painel-2); border: 1px solid var(--borda); cursor: pointer;
+    }
+    .opcao input[type="checkbox"] { flex: none; width: 24px; height: 24px; }
+    .opcao span { min-width: 0; }
+    .precos { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; max-width: 52%; text-align: right; font-size: 12px; min-width: 0; }
+    .precos span { overflow-wrap: anywhere; }
+    .precos .desat { color: var(--aviso); }
+    .linha-registro {
+      padding: 7px 4px; border-bottom: 1px solid var(--borda); font-family: Consolas, monospace; font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+    .linha-registro .hora { color: var(--suave); margin-right: 6px; white-space: nowrap; }
+    .linha-registro .conta { color: var(--destaque); margin-right: 6px; white-space: nowrap; }
+    .linha-registro.aviso { color: var(--aviso); }
+    .linha-registro.erro { color: var(--erro); }
+    .sem-linha { margin: 0; color: var(--suave); font-size: 12px; }
+    .aviso-tela { margin: 0; color: var(--aviso); font-size: 12px; overflow-wrap: anywhere; }
+    .botao-ir { white-space: normal; }
   </style>
 </head>
 <body>
@@ -227,7 +296,96 @@
   <main>
     <p id="aviso" class="aviso" role="status" hidden></p>
     <p id="atualizado" class="atualizado"></p>
-    <section id="cartoes" class="cartoes" aria-live="polite"></section>
+    <p id="resultado-geral" class="resultado" role="status" hidden></p>
+
+    <section id="tela-contas" class="tela" data-tela="contas">
+      <section id="cartoes" class="cartoes" aria-live="polite"></section>
+    </section>
+
+    <section id="tela-hunts" class="tela" data-tela="hunts" hidden>
+      <div id="hunts-contas" class="abas-conta"></div>
+      <div class="linha-auto">
+        <div><b>Análise das hunts</b><small id="hunts-quando">—</small></div>
+        <button id="hunts-analisar" class="btn primario" type="button">Analisar agora</button>
+      </div>
+      <p id="hunts-info" class="dica"></p>
+      <div id="hunts-regioes" class="regioes" role="group" aria-label="Regiões do mapa"></div>
+      <p class="rotulo-lista">Ordenar por</p>
+      <div id="hunts-ordem" class="abas-conta" role="group" aria-label="Ordem da lista">
+        <button type="button" data-ordem="xp" aria-pressed="true">XP/h</button>
+        <button type="button" data-ordem="ouro" aria-pressed="false">Ouro/h</button>
+        <button type="button" data-ordem="nivel" aria-pressed="false">Nível</button>
+      </div>
+      <div id="lista-hunts-tela" class="lista"></div>
+      <p class="dica">Ir para uma hunt manda a conta para lá, como o botão da aba Hunt. As trancadas ficam apagadas.</p>
+    </section>
+
+    <section id="tela-mercado" class="tela" data-tela="mercado" hidden>
+      <p id="mercado-leitura" class="dica"></p>
+      <div class="opcao">
+        <div><b>Radar de ofertas</b><small id="radar-status" class="dica"></small></div>
+        <input id="radar-ativo" type="checkbox" aria-label="Ligar o radar de ofertas">
+      </div>
+      <div class="campos">
+        <label>Conta do radar<select id="radar-conta"></select></label>
+        <label>Desconto mínimo (%)<input id="radar-desconto" type="number" inputmode="numeric" min="1" max="95"></label>
+        <label>Moeda<select id="radar-moeda"><option value="orb">Gemas</option><option value="gold">Coins</option><option value="ambas">As duas</option></select></label>
+        <label>Mín. de vendas na semana<input id="radar-vendas" type="number" inputmode="numeric" min="0"></label>
+        <label>Atualizar a cada (min)<input id="radar-minutos" type="number" inputmode="numeric" min="1" max="60"></label>
+        <label class="linha-check"><input id="radar-auto" type="checkbox"> Atualizar sozinha</label>
+      </div>
+      <div class="botoes-form"><button id="radar-salvar" class="btn primario" type="button">Salvar opções do radar</button></div>
+      <p class="rotulo-lista">Ofertas para aprovar (aprovar e comprar são só no PC)</p>
+      <div id="mercado-ofertas" class="lista"></div>
+      <p class="rotulo-lista">Preços do RMT (itens raros)</p>
+      <div id="mercado-cats" class="abas-conta" role="group" aria-label="Categorias"></div>
+      <div id="mercado-precos" class="lista"></div>
+      <p class="rotulo-lista">Últimas compras</p>
+      <div id="mercado-compras" class="lista"></div>
+    </section>
+
+    <section id="tela-lives" class="tela" data-tela="lives" hidden>
+      <div class="linha-auto"><div><b id="lives-resumo">—</b><small>Twitch e Kick</small></div></div>
+      <div class="grade-botoes">
+        <button id="live-twitch" class="btn" type="button">Abrir só Twitch</button>
+        <button id="live-kick" class="btn" type="button">Abrir só Kick</button>
+        <button id="live-todas" class="btn primario" type="button">Abrir todas</button>
+      </div>
+      <p class="rotulo-lista">Abrir as lives na conta</p>
+      <div id="lives-conta" class="abas-conta"></div>
+      <div class="campos">
+        <label>Qualidade da Twitch<select id="lives-qualidade">
+          <option value="chat">Só chat (o mais leve)</option>
+          <option value="160p30">160p (leve)</option>
+          <option value="360p30">360p</option>
+          <option value="480p30">480p</option>
+          <option value="auto">Automática (pesada)</option>
+        </select></label>
+      </div>
+      <label class="opcao"><span>Conferir a cada 5 min (fecha as offline e recarrega as no ar)</span><input id="lives-manter" type="checkbox"></label>
+      <label class="opcao"><span>Abrir sozinha a live que entrar no ar</span><input id="lives-auto" type="checkbox"></label>
+      <p class="rotulo-lista">Abrir sozinha na conta</p>
+      <div id="lives-auto-conta" class="abas-conta"></div>
+      <p class="rotulo-lista">No ar e fora</p>
+      <div id="lives-lista" class="lista"></div>
+      <p class="dica">Abre só o vídeo e o chat. O login e o bônus continuam no PC.</p>
+    </section>
+
+    <section id="tela-registro" class="tela" data-tela="registro" hidden>
+      <div id="registro-contas" class="abas-conta" role="group" aria-label="Conta do registro"></div>
+      <p class="dica">As últimas 100 linhas de cada conta, da mais nova para a mais antiga.</p>
+      <div id="registro-lista" class="lista"></div>
+    </section>
+
+    <section id="tela-config" class="tela" data-tela="config" hidden>
+      <p class="rotulo-lista">Tela</p>
+      <div class="campos"><label>Escala da interface<select id="config-escala"></select></label></div>
+      <p class="rotulo-lista">Som dos jogos</p>
+      <div id="config-sons" class="lista"></div>
+      <p class="rotulo-lista">Sobre</p>
+      <div class="opcao"><span>Versão do app</span><b id="config-versao">—</b></div>
+      <p class="dica">Logins, senhas e e-mails não aparecem aqui e não mudam pelo celular.</p>
+    </section>
 
     <section id="tela-conta" class="tela-conta" hidden>
       <div class="conta-topo">
@@ -241,7 +399,8 @@
         <button type="button" data-aba="time" aria-pressed="false">Time</button>
         <button type="button" data-aba="mochila" aria-pressed="false">Mochila</button>
         <button type="button" data-aba="centro" aria-pressed="false">Centro</button>
-        <button type="button" data-aba="automacao" aria-pressed="false">Automação</button>
+        <button type="button" data-aba="sniper" aria-pressed="false">Sniper</button>
+        <button type="button" data-aba="captura" aria-pressed="false">Captura</button>
       </nav>
 
       <div class="painel" data-painel="hunt">
@@ -273,18 +432,85 @@
         </div>
       </div>
 
-      <div class="painel" data-painel="automacao" hidden>
+      <div class="painel" data-painel="sniper" hidden>
         <div class="linha-auto">
-          <div><b>Sniper</b><small id="auto-sniper-estado">—</small></div>
-          <button id="auto-sniper" class="btn" type="button">—</button>
+          <div><b>Sniper nesta conta</b><small id="sn-estado">—</small></div>
+          <button id="sn-ligar" class="btn" type="button">—</button>
         </div>
+        <p class="rotulo-lista">Todas as contas</p>
+        <div class="campos">
+          <label>Margem após liberar (ms)<input id="sn-margem" type="number" inputmode="numeric" min="0" max="2500" step="50"></label>
+          <label>Varredura do mercado (s)<input id="sn-varredura" type="number" inputmode="numeric" min="10" max="120" step="5"></label>
+        </div>
+        <div class="botoes-form"><button id="sn-opcoes" class="btn" type="button">Salvar opções</button></div>
+        <p class="rotulo-lista">Regras desta conta</p>
+        <div id="lista-regras-sn" class="lista"></div>
+        <div class="botoes-form"><button id="sn-nova" class="btn primario" type="button">Nova regra de item</button></div>
+        <p class="dica">Pelo celular dá para criar regras de item, ligar, pausar, apagar e editar o teto e o limite de pokémon. Criar regra de pokémon fica só no PC.</p>
+
+        <form id="form-regra" class="form-regra" hidden>
+          <p id="form-titulo" class="rotulo-lista">Nova regra de item</p>
+          <div id="fr-item" class="campos-bloco">
+            <div class="botoes-form"><button id="fr-catalogo" class="btn" type="button">Escolher item do RMT…</button></div>
+            <p id="fr-escolhido" class="dica">Nenhum item escolhido</p>
+            <div id="fr-busca-box" hidden>
+              <input id="fr-busca" type="search" placeholder="Buscar item" aria-label="Buscar item do RMT">
+              <div id="fr-lista" class="lista fr-lista"></div>
+            </div>
+            <p class="rotulo-lista">Preço</p>
+            <div class="abas-conta">
+              <button id="fr-fixo" type="button" aria-pressed="true">Teto fixo</button>
+              <button id="fr-media" type="button" aria-pressed="false">Abaixo da média de 7 dias</button>
+            </div>
+            <div id="fr-media-campos" class="campos" hidden>
+              <label>Desconto mínimo (%)<input id="fr-desconto" type="number" inputmode="numeric" min="1" max="95" value="30"></label>
+              <label>Moeda<select id="fr-moeda"><option value="orb">Gemas</option><option value="gold">Coins</option><option value="ambas">As duas</option></select></label>
+              <label>Mín. de vendas na semana<input id="fr-vendas" type="number" inputmode="numeric" min="0" value="5"></label>
+              <label class="linha-check"><input id="fr-aprovar" type="checkbox" checked> Pedir minha aprovação antes de comprar</label>
+            </div>
+          </div>
+          <p class="rotulo-lista">Tetos e limite</p>
+          <div class="campos">
+            <label>Teto em Coins (0 = não compra)<input id="fr-gold" type="number" inputmode="numeric" min="0"></label>
+            <label>Teto em Gemas (0 = não compra)<input id="fr-gemas" type="number" inputmode="numeric" min="0"></label>
+            <label>Limite de unidades (0 = sem limite)<input id="fr-qtd" type="number" inputmode="numeric" min="0"></label>
+          </div>
+          <p id="fr-erro" class="resultado erro" role="alert" hidden></p>
+          <div class="botoes-form">
+            <button id="fr-cancelar" class="btn" type="button">Cancelar</button>
+            <button id="fr-salvar" class="btn primario" type="submit">Adicionar regra</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="painel" data-painel="captura" hidden>
         <div class="linha-auto">
-          <div><b>Lançar bolas (captura)</b><small id="auto-captura-estado">—</small></div>
-          <button id="auto-captura" class="btn" type="button">—</button>
+          <div><b>Lançar bolas nesta conta</b><small id="cp-estado">—</small></div>
+          <button id="cp-ligar" class="btn" type="button">—</button>
         </div>
+        <p id="cp-status" class="dica"></p>
+        <p class="rotulo-lista">Modo</p>
+        <div class="abas-conta">
+          <button id="cp-modo-capturar" type="button" aria-pressed="true">Jogar até capturar</button>
+          <button id="cp-modo-sempre" type="button" aria-pressed="false">Jogar pra sempre</button>
+        </div>
+        <p class="rotulo-lista">Bola usada</p>
+        <div id="cp-bolas" class="abas-conta"></div>
+        <p class="rotulo-lista">Reposição automática na loja do jogo</p>
+        <div id="cp-rep-bola" class="bloco-rep"></div>
+        <div id="cp-rep-pocao" class="bloco-rep"></div>
       </div>
     </section>
   </main>
+
+  <nav class="abas-principais" aria-label="Telas do painel">
+    <button type="button" data-tela="contas" aria-pressed="true">Contas</button>
+    <button type="button" data-tela="hunts" aria-pressed="false">Hunts</button>
+    <button type="button" data-tela="mercado" aria-pressed="false">Mercado</button>
+    <button type="button" data-tela="lives" aria-pressed="false">Lives</button>
+    <button type="button" data-tela="registro" aria-pressed="false">Registro</button>
+    <button type="button" data-tela="config" aria-pressed="false">Config</button>
+  </nav>
 
   <div id="confirma" class="fundo" hidden>
     <div class="caixa" role="dialog" aria-modal="true" aria-labelledby="confirma-texto">
@@ -320,6 +546,8 @@
       var confirmaTextoEl = document.getElementById('confirma-texto');
       var buscaHuntEl = document.getElementById('busca-hunt');
       var buscaMochilaEl = document.getElementById('busca-mochila');
+      var geralEl = document.getElementById('resultado-geral');
+      var mainEl = document.querySelector('main');
       var codigo = lerCodigo();
       var timer = null;
 
@@ -331,19 +559,33 @@
       var assinaturas = {};     // lista -> última versão desenhada (não redesenha à toa)
       var quantidades = {};     // conta:id do item -> quantidade digitada no Descartar
       var regiaoPorConta = {};  // conta -> região escolhida na aba Hunt (só enquanto a página estiver aberta)
+      var abaPrincipal = 'contas';  // tela do rodapé (contas, hunts, mercado, lives, registro, config)
+      var contaHunts = 0;           // conta da tela Hunts
+      var contaRegistro = -1;       // conta do Registro (-1: todas)
+      var huntsOrdem = 'xp';        // xp, ouro ou nivel
+      var mercadoCat = '';          // categoria do filtro de preços
+      var aguardandoHunts = 0;      // até quando a página confere a análise de hunts com mais frequência
+      var detalhes = { hunts: [null, null, null, null], registro: null, mercado: null };
+      var pedidos = {};             // detalhe -> quando foi pedido pela última vez
+      var INTERVALO_DETALHE_MS = { hunts: 20000, registro: 6000, mercado: 10000 };
+      var CATEGORIAS = [['', 'Todas'], ['box', 'Boxes'], ['casa', 'Casas'], ['bicicleta', 'Bicicletas'], ['skin', 'Skins'],
+        ['fragment', 'Fragmentos'], ['boss', 'Boss Tokens'], ['ticket', 'Tickets']];
+      var ESCALAS = [['auto', 'Automático'], ['1', '100%'], ['0.9', '90%'], ['0.8', '80%'], ['0.75', '75%']];
+      var ROTULO_COMPRA = { ganhou: 'comprou', perdeu: 'perdeu o sorteio', recusado: 'recusado', 'sem resposta': 'sem resposta' };
 
       function lerCodigo() {
         var cod = null;
         var m = /(?:^|[#&])t=([^&]*)/.exec(location.hash || '');
         if (m && CODIGO.test(m[1])) {
           cod = m[1];
-          try { sessionStorage.setItem(CHAVE, cod); } catch (e) { /* sem sessionStorage: segue com o código da barra */ }
+          // Guardado no aparelho (localStorage): o atalho na tela inicial abre sem o código na barra e continua valendo.
+          try { localStorage.setItem(CHAVE, cod); } catch (e) { /* sem armazenamento: segue com o código da barra */ }
         }
         if (location.hash) {
           try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* sem histórico: segue */ }
         }
         if (!cod) {
-          try { cod = sessionStorage.getItem(CHAVE); } catch (e) { cod = null; }
+          try { cod = localStorage.getItem(CHAVE) || sessionStorage.getItem(CHAVE); } catch (e) { cod = null; }
         }
         return CODIGO.test(cod || '') ? cod : null;
       }
@@ -402,10 +644,15 @@
         avisoEl.textContent = texto || '';
         avisoEl.hidden = !texto;
       }
+      // A mesma mensagem aparece no Controle (se estiver aberto) e na linha geral (nas telas do rodapé).
       function mostrarResultado(texto, tipo) {
+        var classe = 'resultado' + (tipo ? ' ' + tipo : '');
         resultadoEl.textContent = texto || '';
-        resultadoEl.className = 'resultado' + (tipo ? ' ' + tipo : '');
+        resultadoEl.className = classe;
         resultadoEl.hidden = !texto;
+        geralEl.textContent = texto || '';
+        geralEl.className = classe;
+        geralEl.hidden = !texto || contaAberta >= 0;
       }
 
       function metrica(rotulo, valor) {
@@ -475,7 +722,12 @@
             linha('Hunt', c.hunt || 'sem hunt'),
             linha('Sessão', c.sessaoMs != null ? duracao(c.sessaoMs) : '—'),
             linha('Poção', estoque(c.pocao)),
-            linha('Bola', estoque(c.bola))),
+            linha('Bola', estoque(c.bola)),
+            linha('Fila do sniper', c.fila != null ? formatar(c.fila) : '—'),
+            linha('Gasto na sessão', c.gastos ? 'poções ' + formatar(c.gastos.pocoes) + ' · bolas ' + formatar(c.gastos.bolas) : '—'),
+            linha('Shinies', c.shinies ? formatar(c.shinies.vistos) + ' vistos · ' + formatar(c.shinies.capturados) + ' capturados' : '—'),
+            linha('Bônus de XP', c.xpBonus != null ? '+' + Math.round((c.xpBonus - 1) * 100) + '%' : '—'),
+            linha('Último sniper', c.ultimoSniper && c.ultimoSniper.msg ? c.ultimoSniper.msg : '—')),
           el('div', 'rotulo', 'Drops raros'),
           el('div', 'drops', drops),
           el('div', 'selos',
@@ -489,7 +741,8 @@
       function codigoInvalido() {
         pararAtualizacao();
         definirEstado('Código inválido', 'erro');
-        mostrarAviso('Código inválido. Escaneie o QR de novo na central.');
+        mostrarAviso('Código inválido (foi gerado um novo na central?). Escaneie o QR de novo.');
+        try { localStorage.removeItem(CHAVE); } catch (e) { /* nada guardado */ }
         fecharConta();
       }
 
@@ -500,8 +753,7 @@
       function abrirConta(i) {
         contaAberta = i;
         abaAberta = 'hunt';
-        cartoesEl.hidden = true;
-        telaEl.hidden = false;
+        mostrarTelas();
         mostrarResultado('', '');
         desenharTela();
         window.scrollTo(0, 0);
@@ -509,9 +761,9 @@
 
       function fecharConta() {
         contaAberta = -1;
-        telaEl.hidden = true;
-        cartoesEl.hidden = false;
+        mostrarTelas();
         fecharConfirmacao();
+        fecharFormRegra();
         mostrarResultado('', '');
       }
 
@@ -534,10 +786,10 @@
       }
 
       // A região mostrada: a que a pessoa escolheu nesta conta; senão a da hunt atual; senão a primeira.
-      function regiaoDaVez(ctl) {
+      function regiaoDaVez(ctl, conta) {
         var regioes = ctl.regioes || [];
         var ids = regioes.map(function (r) { return r.id; });
-        var lembrada = regiaoPorConta[contaAberta];
+        var lembrada = regiaoPorConta[conta];
         if (lembrada && ids.indexOf(lembrada) >= 0) return lembrada;
         var atual = (ctl.hunts || []).filter(function (h) { return h.atual && ids.indexOf(h.regiao) >= 0; })[0];
         return atual ? atual.regiao : (ids[0] || null);
@@ -549,9 +801,9 @@
       }
 
       // Fileira de regiões (rola de lado): cadeado nas trancadas, a escolhida destacada.
-      function desenharRegioes(regiaoEl, ctl, sel) {
+      function desenharRegioes(regiaoEl, ctl, sel, conta, aoEscolher) {
         var regioes = ctl.regioes || [];
-        desenharLista(regiaoEl, JSON.stringify(regioes) + '|' + sel, function () {
+        desenharLista(regiaoEl, conta + '|' + JSON.stringify(regioes) + '|' + sel, function () {
           return regioes.map(function (r) {
             var b = document.createElement('button');
             b.type = 'button';
@@ -560,8 +812,8 @@
             b.appendChild(el('b', '', (r.trancada ? '🔒 ' : '') + r.rotulo));
             b.appendChild(el('small', '', 'Nv. ' + formatar(r.nivel)));
             b.addEventListener('click', function () {
-              regiaoPorConta[contaAberta] = r.id;
-              desenharTela();
+              regiaoPorConta[conta] = r.id;
+              aoEscolher();
             });
             return b;
           });
@@ -577,9 +829,9 @@
           return desenharLista(lista, 'sem-lista', function () { return [el('p', 'vazio', SEM_LISTA)]; });
         }
         var termo = buscaHuntEl.value.trim().toLowerCase();
-        var sel = regiaoDaVez(ctl);
+        var sel = regiaoDaVez(ctl, contaAberta);
         regiaoEl.hidden = Boolean(termo);
-        if (!termo) desenharRegioes(regiaoEl, ctl, sel);
+        if (!termo) desenharRegioes(regiaoEl, ctl, sel, contaAberta, desenharTela);
         var hunts = (ctl.hunts || []).filter(function (h) {
           return termo ? (h.nome + ' ' + h.slug).toLowerCase().indexOf(termo) >= 0 : h.regiao === sel;
         });
@@ -670,17 +922,332 @@
         });
       }
 
-      function desenharAutomacao(c) {
+      // ---------------------------------------------------------- Sniper (aba)
+
+      var catalogoItens = null;     // itens do RMT do PC (id, nome, grupo): buscados na primeira vez
+      var formRegra = { id: null, tipo: 'item', modo: 'fixo', item: null };
+      var assinaturaRep = {};       // bloco da reposição -> última versão desenhada
+
+      function numeroDoCampo(id) {
+        var v = document.getElementById(id).value;
+        return v.trim() === '' ? 0 : Number(v);
+      }
+      // Preenche um campo com o valor da central, sem mexer no que a pessoa está digitando.
+      function preencherSeLivre(id, valorNovo) {
+        var e = document.getElementById(id);
+        if (valorNovo == null || document.activeElement === e) return;
+        e.value = String(valorNovo);
+      }
+
+      function textoMedia(r) {
+        var moeda = { orb: 'Gemas', gold: 'Coins', ambas: 'Coins e Gemas' }[r.moedaMedia || 'orb'];
+        return '≥ ' + r.desconto + '% abaixo da média em ' + moeda + ' · mín. ' + (r.minVendas || 0) + ' vendas/semana' + (r.aprovar ? ' · pede aprovação' : '');
+      }
+
+      function linhaRegra(r) {
+        var pk = r.tipo === 'pokemon';
+        var nome = pk ? (r.alvo || 'qualquer espécie') : (r.alvo || 'qualquer item do RMT');
+        var partes = [];
+        if (r.modo === 'media') partes.push(textoMedia(r));
+        if (r.maxGold) partes.push('≤ ' + formatar(r.maxGold) + ' Coins');
+        if (r.maxGemas) partes.push('≤ ' + formatar(r.maxGemas) + ' Gemas');
+        partes.push(r.maxQtd ? formatar(r.compradas || 0) + '/' + formatar(r.maxQtd) + ' un.' : formatar(r.compradas || 0) + ' compradas');
+        var info = el('div', 'txt-pk',
+          el('b', '', (pk ? 'Pokémon: ' : 'Item: ') + nome + (r.ativa ? '' : ' (pausada)')),
+          el('small', '', pk ? (r.resumo || '') : partes.join(' · ')));
+        var controles = el('div', 'controles',
+          botao(r.ativa ? 'Pausar' : 'Ativar', function () {
+            agir('sniperRegraAtiva', { id: r.id, ativa: !r.ativa }, r.ativa ? 'Regra pausada.' : 'Regra ativada.');
+          }, ''),
+          botao('Editar', function () { abrirFormRegra(r); }, ''),
+          botao('Apagar', function () {
+            confirmar('Apagar a regra de ' + nome + '? Não dá para desfazer.', function () {
+              agir('sniperRegraApagar', { id: r.id }, 'Regra apagada.');
+            });
+          }, 'perigo'));
+        return el('div', 'item-pk' + (r.ativa ? '' : ' pausada'), info, controles);
+      }
+
+      function desenharSniper(c, dados) {
         var sn = c.sniperLigado === true;
-        var cap = c.capturaLigada === true;
-        document.getElementById('auto-sniper-estado').textContent = sn ? 'Ligado nesta conta' : 'Desligado nesta conta';
-        var bSn = document.getElementById('auto-sniper');
-        bSn.textContent = sn ? 'Desligar' : 'Ligar';
-        bSn.className = 'btn' + (sn ? '' : ' primario');
-        document.getElementById('auto-captura-estado').textContent = cap ? 'Ligada nesta conta' : 'Desligada nesta conta';
-        var bCap = document.getElementById('auto-captura');
-        bCap.textContent = cap ? 'Desligar' : 'Ligar';
-        bCap.className = 'btn' + (cap ? '' : ' primario');
+        document.getElementById('sn-estado').textContent = sn ? 'Ligado nesta conta' : 'Desligado nesta conta';
+        var b = document.getElementById('sn-ligar');
+        b.textContent = sn ? 'Desligar' : 'Ligar';
+        b.className = 'btn' + (sn ? '' : ' primario');
+        var op = (dados && dados.sniper) || {};
+        preencherSeLivre('sn-margem', op.margemMs);
+        preencherSeLivre('sn-varredura', op.varreduraSeg);
+        var regras = Array.isArray(c.regras) ? c.regras : [];
+        desenharLista(document.getElementById('lista-regras-sn'), JSON.stringify(regras), function () {
+          if (!regras.length) return [el('p', 'vazio', 'Nenhuma regra nesta conta ainda.')];
+          return regras.map(linhaRegra);
+        });
+      }
+
+      function textoItemEscolhido() {
+        if (formRegra.item) return formRegra.item.nome + ' · id ' + formRegra.item.id;
+        return formRegra.modo === 'media' ? 'Qualquer item do RMT' : 'Nenhum item escolhido';
+      }
+
+      function fixarModo(modo) {
+        formRegra.modo = modo;
+        document.getElementById('fr-fixo').setAttribute('aria-pressed', String(modo === 'fixo'));
+        document.getElementById('fr-media').setAttribute('aria-pressed', String(modo === 'media'));
+        document.getElementById('fr-media-campos').hidden = modo !== 'media';
+        document.getElementById('fr-escolhido').textContent = textoItemEscolhido();
+      }
+
+      // Formulário: regra nova de item (r vazio), item editado, ou pokémon (só teto e limite).
+      function abrirFormRegra(r) {
+        var pk = Boolean(r && r.tipo === 'pokemon');
+        formRegra.id = r ? r.id : null;
+        formRegra.tipo = pk ? 'pokemon' : 'item';
+        formRegra.item = r && !pk && (r.itemId || r.alvo) ? { id: r.itemId || 0, nome: r.alvo || 'Item' } : null;
+        document.getElementById('fr-item').hidden = pk;
+        document.getElementById('form-titulo').textContent = !r ? 'Nova regra de item' : pk ? 'Editar pokémon: teto e limite' : 'Editar regra de item';
+        document.getElementById('fr-salvar').textContent = r ? 'Salvar alterações' : 'Adicionar regra';
+        document.getElementById('fr-busca-box').hidden = true;
+        document.getElementById('fr-busca').value = '';
+        fixarModo(r && r.modo === 'media' ? 'media' : 'fixo');
+        document.getElementById('fr-desconto').value = r && r.desconto ? r.desconto : 30;
+        document.getElementById('fr-moeda').value = r && r.moedaMedia ? r.moedaMedia : 'orb';
+        document.getElementById('fr-vendas').value = r && r.minVendas != null ? r.minVendas : 5;
+        document.getElementById('fr-aprovar').checked = r && r.modo === 'media' ? r.aprovar !== false : true;
+        document.getElementById('fr-gold').value = r && r.maxGold ? r.maxGold : '';
+        document.getElementById('fr-gemas').value = r && r.maxGemas ? r.maxGemas : '';
+        document.getElementById('fr-qtd').value = r && r.maxQtd ? r.maxQtd : '';
+        document.getElementById('fr-erro').hidden = true;
+        document.getElementById('form-regra').hidden = false;
+        document.getElementById('form-regra').scrollIntoView({ block: 'start' });
+      }
+
+      function fecharFormRegra() {
+        formRegra.id = null;
+        document.getElementById('form-regra').hidden = true;
+        document.getElementById('fr-erro').hidden = true;
+      }
+
+      function mostrarErroForm(texto) {
+        var e = document.getElementById('fr-erro');
+        e.textContent = texto;
+        e.hidden = false;
+      }
+
+      // Catálogo do RMT, do PC (só a lista que o seletor do PC mostra). null: o PC ainda não mandou.
+      function carregarCatalogoPagina() {
+        if (catalogoItens) return Promise.resolve(catalogoItens);
+        return fetch('/api/catalogo', { cache: 'no-store', headers: { Authorization: 'Bearer ' + codigo } })
+          .then(function (r) {
+            if (r.status === 401) { codigoInvalido(); return null; }
+            if (!r.ok) throw new Error('resposta ' + r.status);
+            return r.json();
+          })
+          .then(function (d) {
+            if (!d || !d.pronto) return null;
+            catalogoItens = d.itens || [];
+            return catalogoItens;
+          });
+      }
+
+      function desenharBuscaItem() {
+        var lista = document.getElementById('fr-lista');
+        var termo = document.getElementById('fr-busca').value.trim().toLowerCase();
+        lista.replaceChildren(el('p', 'vazio', 'Carregando o catálogo…'));
+        carregarCatalogoPagina().then(function (itens) {
+          if (itens === null) {
+            lista.replaceChildren(el('p', 'vazio', 'O catálogo ainda não carregou no PC. Abra o app e tente de novo.'));
+            return;
+          }
+          var achados = itens.filter(function (x) { return !termo || x.nome.toLowerCase().indexOf(termo) >= 0; }).slice(0, 60);
+          lista.replaceChildren(...(achados.length ? achados.map(function (x) {
+            return linhaBotao('', x.nome, 'id ' + x.id + (x.grupo ? ' · ' + x.grupo : ''), function () {
+              formRegra.item = { id: x.id, nome: x.nome };
+              document.getElementById('fr-escolhido').textContent = textoItemEscolhido();
+              document.getElementById('fr-busca-box').hidden = true;
+            }, false);
+          }) : [el('p', 'vazio', 'Nenhum item combina com a busca.')]));
+        }).catch(function () {
+          lista.replaceChildren(el('p', 'vazio', 'Não consegui carregar o catálogo. Confira a rede Wi-Fi.'));
+        });
+      }
+
+      function enviarFormRegra(e) {
+        e.preventDefault();
+        document.getElementById('fr-erro').hidden = true;
+        var regra;
+        if (formRegra.tipo === 'pokemon') {
+          regra = { id: formRegra.id, tipo: 'pokemon', maxGold: numeroDoCampo('fr-gold'), maxGemas: numeroDoCampo('fr-gemas'), maxQtd: numeroDoCampo('fr-qtd') };
+        } else {
+          if (formRegra.modo === 'fixo' && !formRegra.item) return mostrarErroForm('Escolha o item da regra.');
+          regra = {
+            tipo: 'item',
+            alvo: formRegra.item ? formRegra.item.nome : '',
+            itemId: formRegra.item ? formRegra.item.id : 0,
+            modo: formRegra.modo,
+            maxGold: numeroDoCampo('fr-gold'),
+            maxGemas: numeroDoCampo('fr-gemas'),
+            maxQtd: numeroDoCampo('fr-qtd')
+          };
+          if (formRegra.modo === 'media') {
+            regra.desconto = numeroDoCampo('fr-desconto');
+            regra.moedaMedia = document.getElementById('fr-moeda').value;
+            regra.minVendas = numeroDoCampo('fr-vendas');
+            regra.aprovar = document.getElementById('fr-aprovar').checked;
+          }
+          if (formRegra.id) regra.id = formRegra.id;
+        }
+        agir('sniperRegraSalvar', { regra: regra }, 'Regra salva.').then(function (r) {
+          if (r.ok) fecharFormRegra();
+          else mostrarErroForm(r.motivo || 'A central recusou a regra.');
+        });
+      }
+
+      // ---------------------------------------------------------- Captura (aba)
+
+      function textoCaptura(c, cap) {
+        var online = c.online === true;
+        if (cap.ativo && !online) return 'Pausado: a conta está desconectada. Volta sozinho quando ela reconectar.';
+        if (!online) return 'Conta desconectada.';
+        if (cap.ativo && cap.pausa === 'sem_bola') return 'Pausado: acabou a bola escolhida. Escolha outra bola ou compre mais.';
+        if (cap.ativo) {
+          if (!cap.lancadas) return 'Ligado · esperando um pokémon cair.';
+          var t = 'Lançando · ' + formatar(cap.lancadas) + ' bolas nesta sessão · ' + formatar(cap.capturas) + (cap.capturas === 1 ? ' captura' : ' capturas');
+          if (cap.chance != null) t += ' · chance ' + (cap.chance * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '%';
+          if (cap.perdidos) t += ' · ' + formatar(cap.perdidos) + ' sem bola';
+          return t;
+        }
+        if (cap.ultimaCaptura && cap.ultimaCaptura.nome) {
+          return 'Desligado · na última vez capturou ' + cap.ultimaCaptura.nome + (cap.ultimaCaptura.shiny ? ' ✨' : '') +
+            ' com ' + formatar(cap.ultimaCaptura.bolas) + ' bolas';
+        }
+        return 'Desligado.';
+      }
+
+      function desenharCaptura(c) {
+        var cap = c.captura || {};
+        var on = cap.ativo === true;
+        document.getElementById('cp-estado').textContent = on ? 'Ligada nesta conta' : 'Desligada nesta conta';
+        var b = document.getElementById('cp-ligar');
+        b.textContent = on ? 'Desligar' : 'Ligar';
+        b.className = 'btn' + (on ? '' : ' primario');
+        document.getElementById('cp-status').textContent = textoCaptura(c, cap);
+        document.getElementById('cp-modo-capturar').setAttribute('aria-pressed', String(cap.modo !== 'sempre'));
+        document.getElementById('cp-modo-sempre').setAttribute('aria-pressed', String(cap.modo === 'sempre'));
+        // Bolas: as que a conta tem, mais a escolhida (zerada, para ver que acabou). Como no PC.
+        var bolas = (cap.bolas || []).filter(function (x) { return x.qtd > 0 || x.id === cap.ballId; });
+        desenharLista(document.getElementById('cp-bolas'), JSON.stringify([bolas, cap.ballId]), function () {
+          return bolas.map(function (x) {
+            var bt = document.createElement('button');
+            bt.type = 'button';
+            bt.textContent = x.nome + ' · ' + formatar(x.qtd);
+            bt.setAttribute('aria-pressed', String(x.id === cap.ballId));
+            bt.addEventListener('click', function () {
+              agir('capturaConfig', { parcial: { ballId: x.id } }, 'Bola trocada para ' + x.nome + '.');
+            });
+            return bt;
+          });
+        });
+        desenharRepo('cp-rep-bola', 'bola', c);
+        desenharRepo('cp-rep-pocao', 'pocao', c);
+      }
+
+      // Reposição (bola ou poção): ligar, o que comprar, abaixo de quanto, quanto e o limite. Não redesenha
+      // enquanto a pessoa mexe no bloco.
+      function desenharRepo(blocoId, tipo, c) {
+        var cap = c.captura || {};
+        var r = (cap.reposicao || {})[tipo] || { ativo: false, id: 0, abaixoDe: 50, qtd: 1000, limite: 0 };
+        var st = (cap.reposicaoStatus || {})[tipo] || {};
+        var estoque = cap.estoqueRep ? cap.estoqueRep[tipo] : null;
+        var opcoes = tipo === 'bola'
+          ? (cap.lojaBolas && cap.lojaBolas.length ? cap.lojaBolas : (cap.bolas || []).map(function (x) { return { id: x.id, nome: x.nome, preco: null }; }))
+          : (cap.lojaPocoes || []);
+        var bloco = document.getElementById(blocoId);
+        var chave = JSON.stringify([contaAberta, r, st, estoque, opcoes]);
+        if (assinaturaRep[blocoId] === chave || bloco.contains(document.activeElement)) return;
+        assinaturaRep[blocoId] = chave;
+        var titulo = tipo === 'bola' ? 'Bola' : 'Poção';
+        var escolhido = opcoes.filter(function (o) { return o.id === r.id; })[0];
+        var info = st.aviso ? st.aviso
+          : st.pendente ? 'Comprando…'
+            : st.ultimaQtd != null ? 'Comprou ' + formatar(st.ultimaQtd) + ' · ' + formatar(st.compras || 0) + ' ' + (st.compras === 1 ? 'compra' : 'compras') + ' nesta sessão'
+              : r.ativo ? 'Compra quando ficar abaixo de ' + formatar(r.abaixoDe) + (escolhido && escolhido.preco ? ' · ' + formatar(escolhido.preco * r.qtd) + ' Coins por compra' : '') : '';
+        var sel = document.createElement('select');
+        sel.id = blocoId + '-item';
+        opcoes.forEach(function (o) {
+          var op = document.createElement('option');
+          op.value = String(o.id);
+          op.textContent = o.nome + (o.preco ? ' · ' + formatar(o.preco) + ' Coins' : '');
+          if (o.id === r.id) op.selected = true;
+          sel.appendChild(op);
+        });
+        var campo = function (sufixo, rotulo, valor, min) {
+          var i = document.createElement('input');
+          i.type = 'number';
+          i.inputMode = 'numeric';
+          i.min = String(min);
+          i.value = String(valor);
+          i.id = blocoId + sufixo;
+          return el('label', '', rotulo, i);
+        };
+        var ligar = botao(r.ativo ? 'Desligar' : 'Ligar', function () {
+          var parcial = { reposicao: {} };
+          parcial.reposicao[tipo] = { ativo: !r.ativo };
+          agir('capturaConfig', { parcial: parcial }, titulo + ': reposição ' + (r.ativo ? 'desligada.' : 'ligada.'));
+        }, r.ativo ? '' : 'primario');
+        var salvar = botao('Salvar', function () {
+          var parcial = { reposicao: {} };
+          parcial.reposicao[tipo] = {
+            id: numeroDoCampo(blocoId + '-item'),
+            abaixoDe: numeroDoCampo(blocoId + '-abaixo'),
+            qtd: numeroDoCampo(blocoId + '-qtd'),
+            limite: numeroDoCampo(blocoId + '-limite')
+          };
+          agir('capturaConfig', { parcial: parcial }, titulo + ': reposição salva.');
+        }, '');
+        bloco.replaceChildren(
+          el('div', 'linha-auto',
+            el('div', '', el('b', '', titulo + ' na loja'), el('small', '', (r.ativo ? 'Ligada' : 'Desligada') + (estoque != null ? ' · tem ' + formatar(estoque) : ''))),
+            ligar),
+          el('div', 'campos',
+            el('label', '', titulo + ' para comprar', sel),
+            campo('-abaixo', 'Abaixo de', r.abaixoDe, 1),
+            campo('-qtd', 'Comprar de cada vez', r.qtd, 1),
+            campo('-limite', 'Máx. de compras (0 = sempre)', r.limite, 0)),
+          el('div', 'item-pk', el('small', '', info), salvar));
+      }
+
+      function montarSniperECaptura() {
+        document.getElementById('sn-ligar').addEventListener('click', function () {
+          var c = contaAtual();
+          if (c) agir('sniper', { ligado: !c.sniperLigado }, c.sniperLigado ? 'Sniper desligado.' : 'Sniper ligado.');
+        });
+        document.getElementById('sn-opcoes').addEventListener('click', function () {
+          agir('sniperOpcoes', { margemMs: numeroDoCampo('sn-margem'), varreduraSeg: numeroDoCampo('sn-varredura') }, 'Opções do sniper salvas.');
+        });
+        document.getElementById('sn-nova').addEventListener('click', function () { abrirFormRegra(null); });
+        document.getElementById('form-regra').addEventListener('submit', enviarFormRegra);
+        document.getElementById('fr-cancelar').addEventListener('click', fecharFormRegra);
+        document.getElementById('fr-fixo').addEventListener('click', function () { fixarModo('fixo'); });
+        document.getElementById('fr-media').addEventListener('click', function () { fixarModo('media'); });
+        document.getElementById('fr-catalogo').addEventListener('click', function () {
+          var box = document.getElementById('fr-busca-box');
+          box.hidden = !box.hidden;
+          if (!box.hidden) {
+            document.getElementById('fr-busca').focus();
+            desenharBuscaItem();
+          }
+        });
+        document.getElementById('fr-busca').addEventListener('input', desenharBuscaItem);
+        document.getElementById('cp-ligar').addEventListener('click', function () {
+          var c = contaAtual();
+          if (c) agir('captura', { ligado: !(c.captura && c.captura.ativo) }, c.captura && c.captura.ativo ? 'Captura desligada.' : 'Captura ligada.');
+        });
+        document.getElementById('cp-modo-capturar').addEventListener('click', function () {
+          agir('capturaConfig', { parcial: { modo: 'capturar' } }, 'Modo: jogar até capturar.');
+        });
+        document.getElementById('cp-modo-sempre').addEventListener('click', function () {
+          agir('capturaConfig', { parcial: { modo: 'sempre' } }, 'Modo: jogar pra sempre.');
+        });
       }
 
       function desenharTela() {
@@ -690,7 +1257,7 @@
         tituloEl.textContent = c.nick || c.nome || 'Conta';
         pilulaEl.textContent = c.online ? 'Online' : 'Offline';
         pilulaEl.className = 'pilula' + (c.online ? ' on' : '');
-        document.querySelectorAll('.abas-conta button').forEach(function (b) {
+        document.querySelectorAll('.abas-conta button[data-aba]').forEach(function (b) {
           b.setAttribute('aria-pressed', String(b.getAttribute('data-aba') === abaAberta));
         });
         document.querySelectorAll('[data-painel]').forEach(function (p) {
@@ -700,20 +1267,23 @@
         if (abaAberta === 'hunt') desenharHunts(ctl);
         else if (abaAberta === 'time') desenharTime(ctl);
         else if (abaAberta === 'mochila') desenharMochila(ctl);
-        else if (abaAberta === 'automacao') desenharAutomacao(c);
+        else if (abaAberta === 'sniper') desenharSniper(c, ultimoDados);
+        else if (abaAberta === 'captura') desenharCaptura(c);
       }
 
       // ---------------------------------------------------------- Ações
 
       // Manda a ação à central (que confere e executa) e mostra o que ela confirmou ou recusou.
-      function agir(acao, params, sucesso) {
-        if (ocupado || contaAberta < 0 || !codigo) return;
+      // `conta` diz para qual conta vai a ação (padrão: a do Controle aberto).
+      function agir(acao, params, sucesso, conta) {
+        var alvo = conta === undefined ? contaAberta : conta;
+        if (ocupado || alvo < 0 || !codigo) return Promise.resolve({ ok: false, motivo: 'Aguarde a ação anterior terminar.' });
         ocupado = true;
-        telaEl.classList.add('ocupada');
+        mainEl.classList.add('ocupada');
         mostrarResultado('Enviando…', '');
-        var corpo = { conta: contaAberta, acao: acao };
+        var corpo = { conta: alvo, acao: acao };
         Object.keys(params || {}).forEach(function (k) { corpo[k] = params[k]; });
-        fetch('/api/acao', {
+        return fetch('/api/acao', {
           method: 'POST',
           cache: 'no-store',
           headers: { Authorization: 'Bearer ' + codigo, 'Content-Type': 'application/json' },
@@ -724,18 +1294,21 @@
               .then(function (d) { return { status: r.status, dados: d }; });
           })
           .then(function (res) {
-            if (res.status === 401) return codigoInvalido();
+            if (res.status === 401) { codigoInvalido(); return { ok: false, motivo: 'Código inválido.' }; }
             var d = res.dados || {};
             if (d.ok) mostrarResultado(sucesso || 'Feito.', 'ok');
             else mostrarResultado(d.motivo || 'A central recusou a ação.', 'erro');
             atualizar();
+            return { ok: d.ok === true, motivo: d.motivo || null };
           })
           .catch(function () {
             mostrarResultado('Sem conexão com a central. Confira a rede Wi-Fi.', 'erro');
+            return { ok: false, motivo: 'Sem conexão com a central.' };
           })
-          .then(function () {
+          .then(function (r) {
             ocupado = false;
-            telaEl.classList.remove('ocupada');
+            mainEl.classList.remove('ocupada');
+            return r;
           });
       }
 
@@ -759,7 +1332,7 @@
       document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !confirmaEl.hidden) fecharConfirmacao(); });
 
       document.getElementById('voltar').addEventListener('click', fecharConta);
-      document.querySelectorAll('.abas-conta button').forEach(function (b) {
+      document.querySelectorAll('.abas-conta button[data-aba]').forEach(function (b) {
         b.addEventListener('click', function () {
           abaAberta = b.getAttribute('data-aba');
           desenharTela();
@@ -773,14 +1346,406 @@
       document.getElementById('curar').addEventListener('click', function () {
         agir('curar', {}, 'Curando no Centro Pokémon.');
       });
-      document.getElementById('auto-sniper').addEventListener('click', function () {
-        var c = contaAtual();
-        if (c) agir('sniper', { ligado: !c.sniperLigado }, c.sniperLigado ? 'Sniper desligado.' : 'Sniper ligado.');
-      });
-      document.getElementById('auto-captura').addEventListener('click', function () {
-        var c = contaAtual();
-        if (c) agir('captura', { ligado: !c.capturaLigada }, c.capturaLigada ? 'Captura desligada.' : 'Captura ligada.');
-      });
+      montarSniperECaptura();
+
+      // ---------------------------------------------------------- Telas do rodapé
+
+      function mostrarTelas() {
+        var noControle = contaAberta >= 0;
+        document.body.classList.toggle('controlando', noControle);
+        telaEl.hidden = !noControle;
+        document.querySelectorAll('section[data-tela]').forEach(function (t) {
+          t.hidden = noControle || t.getAttribute('data-tela') !== abaPrincipal;
+        });
+        document.querySelectorAll('.abas-principais button').forEach(function (b) {
+          b.setAttribute('aria-pressed', String(b.getAttribute('data-tela') === abaPrincipal));
+        });
+      }
+
+      function irPara(tela) {
+        abaPrincipal = tela;
+        pedidos = {};
+        mostrarTelas();
+        desenharTelaPrincipal();
+        atualizarDetalhe();
+        window.scrollTo(0, 0);
+      }
+
+      function desenharTelaPrincipal() {
+        if (contaAberta >= 0) return;
+        if (abaPrincipal === 'hunts') desenharHuntsTela();
+        else if (abaPrincipal === 'mercado') desenharMercadoTela();
+        else if (abaPrincipal === 'lives') desenharLivesTela();
+        else if (abaPrincipal === 'registro') desenharRegistroTela();
+        else if (abaPrincipal === 'config') desenharConfigTela();
+      }
+
+      function nomeConta(i) {
+        var c = ultimoDados && Array.isArray(ultimoDados.contas) ? ultimoDados.contas[i] : null;
+        return c && c.nome ? c.nome : 'Conta ' + (i + 1);
+      }
+      function contaConectada(i) {
+        var c = ultimoDados && Array.isArray(ultimoDados.contas) ? ultimoDados.contas[i] : null;
+        return Boolean(c && c.online);
+      }
+      function contaLivesAtual() {
+        return ultimoDados && ultimoDados.lives ? ultimoDados.lives.contaLives || 0 : 0;
+      }
+      function horaCurta(em) {
+        return em ? new Date(em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '—';
+      }
+      function horaComSegundos(em) {
+        return em ? new Date(em).toLocaleTimeString('pt-BR') : '—';
+      }
+      function tempoDesde(em, agora) {
+        var min = Math.floor((agora - em) / 60000);
+        if (min < 1) return 'agora';
+        if (min < 60) return 'há ' + min + ' min';
+        return 'há ' + Math.floor(min / 60) + ' h';
+      }
+      function moedaTxt(m) { return m === 'orb' ? 'Gemas' : 'Coins'; }
+      function opcao(valor, texto) {
+        var o = document.createElement('option');
+        o.value = String(valor);
+        o.textContent = texto;
+        return o;
+      }
+      // Marca um checkbox com a versão da central, sem mexer no que a pessoa está mexendo.
+      function marcarSeLivre(id, valor) {
+        var e = document.getElementById(id);
+        if (valor == null || document.activeElement === e) return;
+        e.checked = Boolean(valor);
+      }
+      // Botões das contas (uma escolhida). `comTodas` põe o botão "Todas" (valor -1).
+      function chipsDeContas(listaEl, escolhida, aoEscolher, comTodas) {
+        var itens = comTodas ? [[-1, 'Todas']] : [];
+        for (var i = 0; i < 4; i++) itens.push([i, nomeConta(i)]);
+        desenharLista(listaEl, JSON.stringify([itens, escolhida]), function () {
+          return itens.map(function (x) {
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.textContent = x[1];
+            b.setAttribute('aria-pressed', String(x[0] === escolhida));
+            b.addEventListener('click', function () { aoEscolher(x[0]); });
+            return b;
+          });
+        });
+      }
+
+      // Pede um detalhe ao painel (hunts, registro ou mercado), no máximo a cada `intervalo` ms.
+      function buscarDetalhe(chave, caminho, intervalo, aoReceber) {
+        var agora = Date.now();
+        if (pedidos[chave] && agora - pedidos[chave] < intervalo) return;
+        pedidos[chave] = agora;
+        fetch(caminho, { cache: 'no-store', headers: { Authorization: 'Bearer ' + codigo } })
+          .then(function (r) {
+            if (r.status === 401) { codigoInvalido(); return null; }
+            if (!r.ok) throw new Error('resposta ' + r.status);
+            return r.json();
+          })
+          .then(function (d) { if (d) aoReceber(d); })
+          .catch(function () { /* a linha de conexão no topo já avisa */ });
+      }
+      function atualizarDetalhe() {
+        if (!codigo || contaAberta >= 0) return;
+        if (abaPrincipal === 'hunts') {
+          var conta = contaHunts;
+          var forca = aguardandoHunts > Date.now();
+          buscarDetalhe('hunts', '/api/hunts?conta=' + conta, forca ? 3000 : INTERVALO_DETALHE_MS.hunts, function (d) {
+            detalhes.hunts[conta] = d;
+            if (abaPrincipal === 'hunts' && contaHunts === conta) desenharHuntsTela();
+          });
+        } else if (abaPrincipal === 'registro') {
+          var filtro = contaRegistro;
+          buscarDetalhe('registro', filtro < 0 ? '/api/registro' : '/api/registro?conta=' + filtro, INTERVALO_DETALHE_MS.registro, function (d) {
+            detalhes.registro = { f: filtro, linhas: d.linhas || [] };
+            if (abaPrincipal === 'registro') desenharRegistroTela();
+          });
+        } else if (abaPrincipal === 'mercado') {
+          buscarDetalhe('mercado', '/api/mercado', INTERVALO_DETALHE_MS.mercado, function (d) {
+            detalhes.mercado = d;
+            if (abaPrincipal === 'mercado') desenharMercadoTela();
+          });
+        }
+      }
+
+      // Hunts: a análise que a aba Hunts do PC mostra, por conta; região com cadeado, ordem e "Ir para esta hunt".
+      function desenharHuntsTela() {
+        chipsDeContas(document.getElementById('hunts-contas'), contaHunts, function (n) {
+          contaHunts = n;
+          pedidos.hunts = 0;
+          desenharHuntsTela();
+          atualizarDetalhe();
+        }, false);
+        var ctlConta = ultimoDados && Array.isArray(ultimoDados.contas) ? ultimoDados.contas[contaHunts] : null;
+        var ctl = ctlConta ? ctlConta.controle : null;
+        var d = detalhes.hunts[contaHunts];
+        var regiaoEl = document.getElementById('hunts-regioes');
+        var sel = ctl && (ctl.regioes || []).length ? regiaoDaVez(ctl, contaHunts) : null;
+        regiaoEl.hidden = !sel;
+        if (sel) desenharRegioes(regiaoEl, ctl, sel, contaHunts, desenharHuntsTela);
+        document.querySelectorAll('#hunts-ordem button').forEach(function (b) {
+          b.setAttribute('aria-pressed', String(b.getAttribute('data-ordem') === huntsOrdem));
+        });
+        var pronta = Boolean(d && d.pronto);
+        document.getElementById('hunts-quando').textContent = pronta && d.em
+          ? 'Análise de ' + horaCurta(d.em) + (d.nivelTreinador ? ' · treinador Nv ' + formatar(d.nivelTreinador) : '')
+          : 'Ainda não analisada';
+        document.getElementById('hunts-info').textContent = pronta && d.fatorRitmo
+          ? 'Ritmo real: ' + Math.round(d.fatorRitmo * 100) + '% do estimado.' : '';
+        var lista = document.getElementById('lista-hunts-tela');
+        if (!pronta) {
+          return desenharLista(lista, contaHunts + '|sem-analise|' + contaConectada(contaHunts), function () {
+            return [el('p', 'sem-linha', contaConectada(contaHunts)
+              ? 'Ainda não analisada. Toque em Analisar agora: o jogo leva alguns segundos.'
+              : 'Essa conta não está conectada ao jogo.')];
+          });
+        }
+        var hunts = d.hunts.filter(function (h) { return !sel || h.regiao === sel; });
+        var campo = { xp: 'xpTrH', ouro: 'goldH' }[huntsOrdem];
+        hunts = hunts.slice().sort(function (a, b) {
+          return huntsOrdem === 'nivel' ? (a.nivel || 0) - (b.nivel || 0) : (b[campo] || 0) - (a[campo] || 0);
+        });
+        var assinatura = [contaHunts, sel, huntsOrdem, d.em, hunts.length].join('|');
+        desenharLista(lista, assinatura, function () {
+          if (!hunts.length) return [el('p', 'sem-linha', 'Nenhuma hunt nesta região.')];
+          return hunts.map(function (h) {
+            var trancada = !h.liberada;
+            var info = el('div', 'txt-pk', el('b', '', (trancada ? '🔒 ' : '') + h.nome),
+              el('small', '', ['Nv ' + formatar(h.nivel), 'XP ' + curto(h.xpTrH) + '/h', 'Ouro ' + curto(h.goldH) + '/h',
+                'abates ' + curto(h.killsH) + '/h'].join(' · ')));
+            var acao = h.atual ? el('span', 'pilula on', 'Você está aqui')
+              : trancada ? el('span', 'pilula', 'Trancada')
+                : botao('Ir para esta hunt', function () {
+                  confirmar('Trocar para a hunt ' + h.nome + '?', function () {
+                    agir('hunt', { slug: h.slug }, 'Hunt trocada para ' + h.nome + '.', contaHunts);
+                  });
+                }, 'botao-ir');
+            return el('div', 'item-pk' + (h.atual ? ' atual' : ''), info, acao);
+          });
+        });
+      }
+
+      // Mercado: radar (ligar e opções), ofertas do radar (só ver), preços dos itens raros e compras.
+      function estadoPreco(estado, em, limite, agora) {
+        if (estado === 'disp' && em != null && agora - em > limite) return 'desatualizado';
+        return estado;
+      }
+      function textoPreco(estado, valor, ultimo) {
+        if (estado === 'disp') return formatar(valor);
+        if (estado === 'desatualizado') return ultimo != null ? formatar(ultimo) + ' · desatualizado' : 'desatualizado';
+        return estado === 'sem_oferta' ? 'sem oferta' : 'não lido';
+      }
+      function desenharRadarTela(r) {
+        var nomes = [0, 1, 2, 3].map(nomeConta);
+        var selConta = document.getElementById('radar-conta');
+        var chaveNomes = nomes.join('|');
+        if (assinaturas['radar-conta'] !== chaveNomes) {
+          assinaturas['radar-conta'] = chaveNomes;
+          selConta.replaceChildren(...nomes.map(function (n, i) { return opcao(i, n); }));
+        }
+        preencherSeLivre('radar-conta', r.conta);
+        preencherSeLivre('radar-desconto', r.desconto);
+        preencherSeLivre('radar-moeda', r.moedaMedia);
+        preencherSeLivre('radar-vendas', r.minVendas);
+        preencherSeLivre('radar-minutos', r.minutos);
+        marcarSeLivre('radar-ativo', r.ativo);
+        marcarSeLivre('radar-auto', r.auto);
+        document.getElementById('radar-status').textContent = r.ativo
+          ? 'Procurando ' + formatar(r.desconto) + '% abaixo da média'
+          : 'Desligado';
+      }
+      function desenharMercadoTela() {
+        var d = detalhes.mercado;
+        var pronto = Boolean(d && d.pronto);
+        document.getElementById('mercado-leitura').textContent = pronto && d.leituraEm
+          ? 'Preços lidos às ' + horaComSegundos(d.leituraEm) + ' pela ' + (d.leituraConta || 'conta') + '. Compras e aprovações são só no PC.'
+          : 'Ainda sem preços lidos. Abra o app com uma conta conectada ao jogo.';
+        if (pronto && d.radar) desenharRadarTela(d.radar);
+        var agora = Date.now();
+
+        var ofertas = pronto ? d.ofertas : [];
+        desenharLista(document.getElementById('mercado-ofertas'), JSON.stringify(ofertas), function () {
+          if (!ofertas.length) return [el('p', 'sem-linha', 'Nenhuma oferta agora.')];
+          return ofertas.map(function (o) {
+            var libera = o.liberaEm > 0 ? 'libera em ' + Math.ceil(o.liberaEm / 1000) + ' s' : 'liberada';
+            var info = el('div', 'txt-pk', el('b', '', o.nome), el('small', '', [o.conta, o.origem === 'radar' ? 'radar' : 'regra', libera].join(' · ')));
+            return el('div', 'item-pk', info, el('div', 'precos', el('span', '', formatar(o.preco) + ' ' + moedaTxt(o.moeda)),
+              o.pctMedia != null ? el('small', '', o.pctMedia + '% da média') : null));
+          });
+        });
+
+        desenharLista(document.getElementById('mercado-cats'), mercadoCat, function () {
+          return CATEGORIAS.map(function (x) {
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.textContent = x[1];
+            b.setAttribute('aria-pressed', String(x[0] === mercadoCat));
+            b.addEventListener('click', function () { mercadoCat = x[0]; desenharMercadoTela(); });
+            return b;
+          });
+        });
+        var precos = (pronto ? d.precos : []).filter(function (p) { return !mercadoCat || p.cat === mercadoCat; });
+        var limite = pronto && d.limiteMs ? d.limiteMs : 240000;
+        // A cada 30 s a lista é refeita, para "há N min" e "desatualizado" andarem sozinhos.
+        desenharLista(document.getElementById('mercado-precos'), JSON.stringify([mercadoCat, precos]) + '|' + Math.floor(agora / 30000), function () {
+          if (!precos.length) return [el('p', 'sem-linha', pronto ? 'Nenhum item desta categoria agora.' : 'Sem preços lidos ainda.')];
+          return precos.map(function (p) {
+            var eG = estadoPreco(p.eG, p.em, limite, agora);
+            var eO = estadoPreco(p.eO, p.em, limite, agora);
+            var info = el('div', 'txt-pk', el('b', '', p.nome),
+              el('small', '', [p.qtd ? formatar(p.qtd) + ' à venda' : null, 'lido ' + (p.em ? tempoDesde(p.em, agora) : 'nunca')].filter(Boolean).join(' · ')));
+            return el('div', 'item-pk', info, el('div', 'precos',
+              el('span', eG === 'desatualizado' ? 'desat' : '', 'Coins ' + textoPreco(eG, p.gold, p.goldUlt)),
+              el('span', eO === 'desatualizado' ? 'desat' : '', 'Gemas ' + textoPreco(eO, p.gema, p.gemaUlt)),
+              p.mediaGema ? el('small', '', 'média 7d ' + formatar(p.mediaGema) + ' Gemas') : null));
+          });
+        });
+
+        var compras = pronto ? d.compras : [];
+        desenharLista(document.getElementById('mercado-compras'), JSON.stringify(compras), function () {
+          if (!compras.length) return [el('p', 'sem-linha', 'Nenhuma compra ainda.')];
+          return compras.map(function (c) {
+            var info = el('div', 'txt-pk', el('b', '', (c.qtd > 1 ? c.qtd + '× ' : '') + c.nome),
+              el('small', '', [horaCurta(c.em), c.conta, c.origem].filter(Boolean).join(' · ')));
+            return el('div', 'item-pk', info, el('div', 'precos', el('span', '', formatar(c.total) + ' ' + moedaTxt(c.moeda)),
+              el('small', '', ROTULO_COMPRA[c.resultado] || c.resultado)));
+          });
+        });
+      }
+
+      // Lives: quem está no ar, abrir (todas, só Twitch, só Kick, ou uma) e as opções da aba Lives do PC.
+      function desenharLivesTela() {
+        var lv = ultimoDados && ultimoDados.lives;
+        if (!lv) {
+          return desenharLista(document.getElementById('lives-lista'), 'sem-dados', function () { return [el('p', 'sem-linha', 'Aguardando os dados…')]; });
+        }
+        var lista = lv.lista || [];
+        var noAr = function (plataforma) {
+          return lista.some(function (x) { return x.aoVivo && (!plataforma || x.plataforma === plataforma); });
+        };
+        var totalNoAr = lista.filter(function (x) { return x.aoVivo; }).length;
+        document.getElementById('lives-resumo').textContent = totalNoAr + (totalNoAr === 1 ? ' live no ar agora' : ' lives no ar agora');
+        document.getElementById('live-twitch').disabled = !noAr('twitch');
+        document.getElementById('live-kick').disabled = !noAr('kick');
+        document.getElementById('live-todas').disabled = !noAr();
+        chipsDeContas(document.getElementById('lives-conta'), lv.contaLives, function (n) {
+          agir('livesOpcoes', { parcial: { contaLives: n } }, 'Lives abertas na ' + nomeConta(n) + '.', n);
+        }, false);
+        chipsDeContas(document.getElementById('lives-auto-conta'), lv.autoLive.conta, function (n) {
+          agir('livesOpcoes', { parcial: { autoLive: { conta: n } } }, 'Abrir sozinha na ' + nomeConta(n) + '.', n);
+        }, false);
+        preencherSeLivre('lives-qualidade', lv.qualidade);
+        marcarSeLivre('lives-manter', lv.manterLives);
+        marcarSeLivre('lives-auto', lv.autoLive.ativo);
+        desenharLista(document.getElementById('lives-lista'), JSON.stringify(lista), function () {
+          if (!lista.length) return [el('p', 'sem-linha', 'Nenhuma live na lista ainda. Entre numa conta no PC para o jogo mandar os canais.')];
+          return lista.map(function (x) {
+            var info = el('div', 'txt-pk', el('b', '', (x.plataforma === 'kick' ? 'Kick' : 'Twitch') + ' · ' + x.nome),
+              el('small', '', x.aoVivo ? 'AO VIVO' + (x.viewers ? ' · ' + formatar(x.viewers) : '') : 'offline'));
+            var acao = x.aoVivo ? botao('Assistir', function () {
+              agir('liveAbrir', { plataforma: x.plataforma, canal: x.nome }, 'Abrindo ' + x.nome + '…', contaLivesAtual());
+            }, '') : null;
+            return el('div', 'item-pk', info, acao);
+          });
+        });
+      }
+
+      // Registro: as linhas de cada conta (ou de todas), mais novas primeiro.
+      function desenharRegistroTela() {
+        chipsDeContas(document.getElementById('registro-contas'), contaRegistro, function (n) {
+          contaRegistro = n;
+          pedidos.registro = 0;
+          desenharRegistroTela();
+          atualizarDetalhe();
+        }, true);
+        var reg = detalhes.registro;
+        var linhas = reg && reg.f === contaRegistro ? reg.linhas : null;
+        var lista = document.getElementById('registro-lista');
+        if (!linhas) {
+          return desenharLista(lista, 'carregando|' + contaRegistro, function () { return [el('p', 'sem-linha', 'Carregando o registro…')]; });
+        }
+        desenharLista(lista, contaRegistro + '|' + JSON.stringify(linhas), function () {
+          if (!linhas.length) return [el('p', 'sem-linha', 'Nenhuma linha ainda.')];
+          return linhas.map(function (l) {
+            return el('div', 'linha-registro ' + (l.nivel || ''), el('span', 'hora', horaComSegundos(l.em)),
+              el('span', 'conta', nomeConta(l.conta)), l.msg);
+          });
+        });
+      }
+
+      // Config: escala da interface, som de cada conta e a versão. Nada de login.
+      function desenharConfigTela() {
+        var s = ultimoDados || {};
+        var escala = document.getElementById('config-escala');
+        if (!escala.options.length) escala.replaceChildren(...ESCALAS.map(function (x) { return opcao(x[0], x[1]); }));
+        preencherSeLivre('config-escala', String(s.escala == null ? 'auto' : s.escala));
+        var contas = Array.isArray(s.contas) ? s.contas : [];
+        desenharLista(document.getElementById('config-sons'), JSON.stringify(contas.map(function (c) { return [c.nome, c.mudo]; })), function () {
+          return contas.map(function (c, i) {
+            var info = el('div', 'txt-pk', el('b', '', c.nome || 'Conta ' + (i + 1)), el('small', '', c.mudo ? 'Som mudo' : 'Som ligado'));
+            return el('div', 'item-pk', info, botao(c.mudo ? 'Ligar som' : 'Mutar', function () {
+              agir('configOpcoes', { parcial: { mudo: { conta: i, valor: !c.mudo } } },
+                (c.mudo ? 'Som ligado: ' : 'Som mudo: ') + (c.nome || 'Conta ' + (i + 1)) + '.', i);
+            }, ''));
+          });
+        });
+        document.getElementById('config-versao').textContent = s.versao || '—';
+      }
+
+      function montarTelas() {
+        document.querySelectorAll('.abas-principais button').forEach(function (b) {
+          b.addEventListener('click', function () { irPara(b.getAttribute('data-tela')); });
+        });
+        document.querySelectorAll('#hunts-ordem button').forEach(function (b) {
+          b.addEventListener('click', function () { huntsOrdem = b.getAttribute('data-ordem'); desenharHuntsTela(); });
+        });
+        document.getElementById('hunts-analisar').addEventListener('click', function () {
+          aguardandoHunts = Date.now() + 40000;
+          agir('huntsAtualizar', {}, 'Analisando as hunts. Isso leva alguns segundos.', contaHunts);
+        });
+        document.getElementById('radar-ativo').addEventListener('change', function (e) {
+          var ligado = e.target.checked;
+          agir('radarOpcoes', { parcial: { ativo: ligado } }, ligado ? 'Radar ligado.' : 'Radar desligado.',
+            Number(document.getElementById('radar-conta').value) || 0);
+        });
+        document.getElementById('radar-salvar').addEventListener('click', function () {
+          var conta = Number(document.getElementById('radar-conta').value) || 0;
+          agir('radarOpcoes', { parcial: {
+            conta: conta,
+            desconto: numeroDoCampo('radar-desconto'),
+            moedaMedia: document.getElementById('radar-moeda').value,
+            minVendas: numeroDoCampo('radar-vendas'),
+            auto: document.getElementById('radar-auto').checked,
+            minutos: numeroDoCampo('radar-minutos')
+          } }, 'Opções do radar salvas.', conta);
+        });
+        document.getElementById('live-twitch').addEventListener('click', function () {
+          agir('liveAbrir', { plataforma: 'twitch' }, 'Abrindo as lives da Twitch…', contaLivesAtual());
+        });
+        document.getElementById('live-kick').addEventListener('click', function () {
+          agir('liveAbrir', { plataforma: 'kick' }, 'Abrindo as lives da Kick…', contaLivesAtual());
+        });
+        document.getElementById('live-todas').addEventListener('click', function () {
+          agir('liveAbrir', { plataforma: 'ambas' }, 'Abrindo as lives no ar…', contaLivesAtual());
+        });
+        document.getElementById('lives-qualidade').addEventListener('change', function (e) {
+          agir('livesOpcoes', { parcial: { qualidadeLives: e.target.value } }, 'Qualidade das lives: ' + e.target.value + '.', contaLivesAtual());
+        });
+        document.getElementById('lives-manter').addEventListener('change', function (e) {
+          agir('livesOpcoes', { parcial: { manterLives: e.target.checked } },
+            e.target.checked ? 'Conferindo as lives a cada 5 min.' : 'Conferência das lives desligada.', contaLivesAtual());
+        });
+        document.getElementById('lives-auto').addEventListener('change', function (e) {
+          agir('livesOpcoes', { parcial: { autoLive: { ativo: e.target.checked } } },
+            e.target.checked ? 'Abrir sozinha ligado.' : 'Abrir sozinha desligado.', contaLivesAtual());
+        });
+        document.getElementById('config-escala').addEventListener('change', function (e) {
+          var v = e.target.value === 'auto' ? 'auto' : Number(e.target.value);
+          agir('configOpcoes', { parcial: { escalaInterface: v } },
+            'Escala da interface: ' + e.target.options[e.target.selectedIndex].textContent + '.', 0);
+        });
+      }
 
       // ---------------------------------------------------------- Dados
 
@@ -806,6 +1771,8 @@
         var contas = Array.isArray(dados.contas) ? dados.contas : [];
         cartoesEl.replaceChildren(...contas.map(cartao));
         if (contaAberta >= 0) desenharTela();
+        desenharTelaPrincipal();
+        atualizarDetalhe();
       }
 
       function atualizar() {
@@ -842,6 +1809,8 @@
         if (document.visibilityState === 'visible' && timer) atualizar();
       });
 
+      montarTelas();
+      mostrarTelas();
       if (codigo) {
         atualizar();
         timer = setInterval(atualizar, INTERVALO_MS);

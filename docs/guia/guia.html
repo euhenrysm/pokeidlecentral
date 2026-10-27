@@ -31,7 +31,7 @@
   .nota.aviso { background: var(--aviso); }
   .nota.aviso b:first-child { color: var(--aviso-t); display: block; }
   .quebra { break-before: page; }
-  h3 { break-before: page; font-size: 15pt; font-weight: 800; margin: 18px 0 8px; }
+  h3 { break-after: avoid; font-size: 15pt; font-weight: 800; margin: 18px 0 8px; }
   .prob { margin-bottom: 10px; break-inside: avoid; }
   .prob > b { display: block; }
   .prob p { margin: 2px 0; color: var(--suave); }
@@ -115,13 +115,21 @@
 <div class="passo"><div class="num">📱</div>
   <span class="etiqueta">opcional</span>
   <h2>Painel no celular</h2>
-  <p class="sub">Ver e controlar as contas pelo celular, na mesma rede Wi-Fi</p>
+  <p class="sub">O app inteiro no celular, como um controle remoto — em casa ou na rua</p>
+  <p style="margin:4px 0"><b>Em casa (mesmo Wi-Fi)</b></p>
   <ol>
-    <li>Na aba <span class="bt">Config</span>, ligue o <b>Painel no celular</b>.</li>
-    <li>Aponte a câmera do celular para o QR code que aparece. A página abre no navegador do celular.</li>
-    <li>Em cada conta, <span class="bt">Controlar</span> deixa trocar a hunt, o pokémon ativo e o time, usar itens da mochila, ir ao Centro e ligar o sniper e a captura. Tudo acontece no PC na hora.</li>
+    <li>Na aba <span class="bt">Config</span>, ligue o <b>Painel no celular</b>. Se o Windows perguntar sobre o firewall, permita.</li>
+    <li>Aponte a câmera do celular para o QR <b>Em casa</b>. A página abre no navegador do celular.</li>
+    <li>Para virar app: no Chrome do Android, menu ⋮ → <span class="bt">Adicionar à tela inicial</span>; no Safari do iPhone, compartilhar → <span class="bt">Adicionar à Tela de Início</span>. O atalho continua valendo depois de fechar e abrir o app no PC.</li>
   </ol>
-  <div class="nota"><b>O QR code é como uma senha.</b> Não mande para ninguém. Se achar que alguém pegou, clique em <span class="bt">Gerar novo código</span>: quem estiver usando o código antigo cai na hora.</div>
+  <p style="margin:10px 0 4px"><b>Fora de casa (4G, qualquer lugar)</b> — uma vez só</p>
+  <ol>
+    <li>Instale o <b>Tailscale</b> (grátis) no PC (<code>tailscale.com/download</code>) e no celular (Play Store / App Store).</li>
+    <li>Entre com a <b>mesma conta</b> (Google, por exemplo) nos dois e deixe o Tailscale ligado.</li>
+    <li>Na Config do app aparece um segundo QR, <b>Fora de casa (Tailscale)</b>. Escaneie esse e adicione à tela inicial também.</li>
+  </ol>
+  <p style="margin:6px 0">Pelo celular: telas de <b>Contas, Hunts, Mercado, Lives, Registro e Config</b>, e em cada conta, <span class="bt">Controlar</span> troca a hunt, o time, usa itens da mochila, vai ao Centro e mexe no <b>Sniper</b> (regras) e na <b>Captura</b>. Tudo acontece no PC na hora. Comprar no mercado e senhas ficam só no PC.</p>
+  <div class="nota"><b>O QR code é como uma senha.</b> Não mande para ninguém. O Tailscale é uma rede privada só entre os seus aparelhos: o painel não fica aberto na internet. Se achar que alguém pegou o QR, clique em <span class="bt">Gerar novo código</span>: quem estiver usando o antigo cai na hora (e você escaneia o novo).</div>
 </div>
 
 <div class="passo"><div class="num">🐧</div>
@@ -147,7 +155,8 @@
 <h3>Se algo não funcionar</h3>
 <div class="prob"><b>A verificação "não sou um robô" não aparece</b><p>Abra a aba <b>Jogo</b> e clique na conta: a verificação só carrega com o jogo visível na tela.</p></div>
 <div class="prob"><b>O aviso "Autorizar" da extensão não aparece</b><p>O app precisa estar aberto. Na página de extensões, confira se a <b>PokéIdle Central - Autorizar sessão</b> está ligada. Depois de uma atualização do app, clique no ↻ do cartão da extensão.</p></div>
-<div class="prob"><b>O celular não abre o painel</b><p>O celular e o PC precisam estar na mesma rede Wi-Fi. Se o Windows perguntar sobre o firewall na primeira vez, permita em <b>Redes privadas</b>.</p></div>
+<div class="prob"><b>O celular diz "Código inválido"</b><p>Foi gerado um código novo na Config. Escaneie o QR de novo (e refaça o atalho da tela inicial).</p></div>
+<div class="prob"><b>O celular não abre o painel</b><p>Em casa: o celular e o PC precisam estar na mesma rede Wi-Fi. Fora de casa: o Tailscale tem que estar ligado no PC e no celular, com a mesma conta. Se ainda não abrir, libere o PokeIdle Central no firewall do Windows para redes <b>privadas e públicas</b>.</p></div>
 <div class="prob"><b>O app não abre, ou abre e fecha</b><p>Abra o app uma vez só: se ele já estiver aberto (confira na barra de tarefas, embaixo), clicar no atalho de novo só traz a janela para frente.</p></div>
 
 <div class="final"><b>Ainda com dúvida ou achou um problema?</b> Abra um aviso em <code>github.com/euhenrysm/pokeidlecentral/issues</code>, com um print da tela e o que aparece na aba Registro.</div>

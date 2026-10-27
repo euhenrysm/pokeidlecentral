@@ -34,13 +34,21 @@ O app só faz conexões com estes serviços:
 
 Nenhum desses serviços recebe a sua configuração, senhas, cookies ou logs do app, além do que o próprio site já recebe quando você entra nele, como faria num navegador.
 
-Conexões locais: a extensão do navegador conversa com o app pelo próprio computador (`127.0.0.1`, portas 47731 a 47735). Nada disso sai da sua máquina. O painel no celular, quando ligado, escuta na rede local (portas 47740 a 47745), só para aparelhos da sua rede.
+Conexões locais: a extensão do navegador conversa com o app pelo próprio computador (`127.0.0.1`, portas 47731 a 47735). Nada disso sai da sua máquina. O painel no celular, quando ligado, escuta na rede local (portas 47740 a 47745), para aparelhos da sua rede e, se você usar o Tailscale, para os seus aparelhos na rede privada do Tailscale.
 
 ## Painel no celular
 
 Opcional e desligado por padrão (aba **Config**). Ligado, o app abre uma página na rede Wi-Fi local, com os números das contas: nomes, nível, ouro e gemas, XP/h, abates, capturas, pokémon em campo, estoque de poção e bola, drops raros, e a lista de hunts, time, depósito e mochila de cada conta. Não mostra nem envia senhas, cookies, logins nem ids internos.
 
-O painel também **controla** as contas: troca de hunt, ativa pokémon, põe pokémon no time, usa e descarta itens, vai ao Centro, cura e liga ou desliga sniper e captura. Por isso o QR (ou o código dentro dele) deve ser tratado como uma senha: quem o tiver pode mexer nas suas contas enquanto o painel estiver ligado. Não compartilhe o QR. Não há compra nem venda no mercado pelo celular.
+O painel também mostra as **regras do sniper** de cada conta (nome, teto, limite, quantas já foram compradas) e a configuração da captura (bola, modo e reposição na loja do jogo), com o status que o PC mostra.
+
+O painel também **controla** as contas: troca de hunt, ativa pokémon, põe pokémon no time, usa e descarta itens, vai ao Centro, cura, liga ou desliga sniper e captura, cria, edita, pausa e apaga regras de item do sniper (e só o teto e o limite de regras de pokémon), muda as opções gerais do sniper (margem e varredura) e a configuração da captura. A lista de itens do Mercado da Comunidade (nome e id, a mesma que o seletor do PC mostra) também vai ao celular quando ele pede. Nada disso é dado pessoal. Por isso o QR (ou o código dentro dele) deve ser tratado como uma senha: quem o tiver pode mexer nas suas contas enquanto o painel estiver ligado. Não compartilhe o QR. Não há compra nem venda no mercado pelo celular.
+
+O painel também mostra e faz, pelo celular, o que as abas do app mostram e fazem: a análise de hunts de cada conta (nome, região, nível, taxas de XP, ouro e abates por hora, e as fracas e resistências de tipo de cada hunt; sem ids internos), o registro de cada conta (as últimas 100 linhas: hora, nível e o texto que o app escreve, que pode citar nomes de itens e hunts), os preços dos itens raros do Mercado da Comunidade com a hora da leitura, as ofertas que o radar encontrou, as últimas 50 compras (item, conta, preço e resultado; sem vendedor nem comprador), a lista de lives com quem está no ar, e a configuração (escala da interface, som e versão). O celular pode ligar e desligar o radar e mudar as opções dele, abrir lives, mudar a qualidade da Twitch e o som das contas, e pedir uma nova análise de hunts. Nada disso vai para servidores do app: só responde a aparelhos da rede local (ou da sua rede do Tailscale, que é cifrada de ponta a ponta entre os seus aparelhos), com o código.
+
+O código de acesso fica guardado no computador, cifrado pelo sistema (arquivo `painel-celular.codigo` na pasta de dados), e no navegador do celular que o escaneou, até você gerar um novo.
+
+Logins, senhas, e-mails e tokens de login não vão ao celular e não podem ser mudados por ele. O registro, a análise de hunts e o mercado ficam só na memória do app enquanto o painel estiver ligado, e somem quando ele é desligado ou o app fecha.
 
 O acesso depende de um código aleatório que muda a cada ligada e em "Gerar novo código" (o código antigo deixa de valer na hora). Ele fica só na memória do app e dentro do QR, e não é gravado em disco. Nada disso vai para a internet: a página só responde a aparelhos da sua rede local.
 

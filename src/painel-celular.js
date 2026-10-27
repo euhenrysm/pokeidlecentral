@@ -1,11 +1,13 @@
 // Painel no celular: um servidor HTTP na rede local que mostra os números das contas e deixa o celular
-// controlar as contas (hunt, time, mochila, Centro, sniper e captura). Só liga quando o interruptor da aba
-// Config está ligado (ou ao abrir o app, se estava ligado). O código de acesso é como uma senha.
+// controlar o app (contas, hunts, mercado, lives, registro e configuração). Só liga quando o interruptor da
+// aba Config está ligado (ou ao abrir o app, se estava ligado). O código de acesso é como uma senha.
 const http = require('http');
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+// Regras e listas (bolas, poções, limites) iguais às do PC: o celular não manda nada fora delas.
+const Regras = require('./renderer/regras');
 
 // Gera o QR code do endereço. Se a biblioteca faltar, a Config mostra só o endereço em texto.
 let qrcode = null;
@@ -20,14 +22,24 @@ const MAX_IPS = 8; // IPs diferentes com pedidos nos últimos 60 s (passou disso
 const JANELA_IPS_MS = 60_000;
 const MAX_CORPO = 8 * 1024; // corpo maior que isso: 413; qualquer outro corpo: 400 (só o POST /api/acao recebe corpo)
 const MAX_CORPO_ACAO = 2 * 1024; // corpo de uma ação: até 2 KB (passou disso: 413)
-const ACOES = ['hunt', 'ativo', 'paraTime', 'usarItem', 'descartar', 'centro', 'curar', 'sniper', 'captura'];
+const ACOES = ['hunt', 'ativo', 'paraTime', 'usarItem', 'descartar', 'centro', 'curar', 'sniper', 'captura',
+  'sniperRegraSalvar', 'sniperRegraApagar', 'sniperRegraAtiva', 'sniperOpcoes', 'capturaConfig',
+  'huntsAtualizar', 'liveAbrir', 'livesOpcoes', 'radarOpcoes', 'configOpcoes'];
+const MAX_REGRAS = 200; // regras de uma conta que vão ao celular
+const MAX_CATALOGO = 1000; // itens do RMT que o celular recebe (GET /api/catalogo)
 const MAX_EQUIPE = 12;
 const MAX_DEPOSITO = 30;
-const MAX_HUNTS = 600;
+const MAX_HUNTS = 600; // hunts de uma conta: na aba Controle (snapshot) e na análise (GET /api/hunts)
 const MAX_REGIOES = 20;
 const MAX_MOCHILA = 200;
+const MAX_LINHAS_REGISTRO = 100; // linhas do Registro por conta (GET /api/registro)
+const MAX_PRECOS = 150; // itens do mercado (GET /api/mercado)
+const MAX_OFERTAS = 30; // ofertas do radar que esperam aprovação
+const MAX_COMPRAS = 50; // últimas compras do histórico
+const MAX_LIVES = 80; // lives (no ar e fora) que o celular recebe
 const MAX_IMAGEM = 300_000; // tamanho máximo de uma imagem embutida (data:) no snapshot
-const MAX_CONTAS = 4;
+const MAX_CONTAS = Regras.CONTAS;
+const ROTAS_DADOS = ['/api/estado', '/api/catalogo', '/api/hunts', '/api/registro', '/api/mercado'];
 const HOSTS_IMAGEM = ['raw.githubusercontent.com', 'pokeidle.io'];
 const REGEX_IMAGEM_EMBUTIDA = /^data:image\/(png|gif|webp|jpeg);base64,[A-Za-z0-9+/=]+$/;
 
@@ -45,7 +57,13 @@ let ip = '';
 let porta = 0;
 let token = ''; // só em memória: muda a cada ligada e em "Gerar novo código"
 let subindo = null; // ligada em andamento (um clique duplo não sobe dois servidores)
-let ultimoSnapshot = null; // { geradoEm, contas }
+let ultimoSnapshot = null; // { geradoEm, sniper, contas }
+let catalogoAtual = null; // [{ id, nome, grupo }] do RMT, mandado pela central ao ligar e ao mudar (null: ainda não veio)
+// Detalhes que a central manda só quando mudam (não vão no snapshot de 3 s): análise de hunts por conta,
+// registro por conta, e mercado (preços, ofertas e compras). Só o último de cada.
+let huntsDaConta = [null, null, null, null];
+let registroDaConta = [[], [], [], []];
+let mercadoAtual = null;
 const sockets = new Set();
 const pedidosPorIp = new Map(); // ip -> { inicio, n }
 const acoesPorIp = new Map(); // ip -> { inicio, n }: ações por segundo
@@ -64,6 +82,21 @@ function ipDaRede() {
   }
   return null;
 }
+// Endereço do Tailscale (rede privada entre os seus aparelhos, 100.64.0.0/10): é o que o celular usa fora de casa.
+function ipTailscale() {
+  const redes = os.networkInterfaces();
+  for (const nome of Object.keys(redes)) {
+    for (const end of redes[nome] || []) {
+      const ipv4 = end.family === 'IPv4' || end.family === 4;
+      if (ipv4 && !end.internal && ehTailscale(end.address)) return end.address;
+    }
+  }
+  return null;
+}
+function ehTailscale(endereco) {
+  const [a, b] = String(endereco).split('.').map(Number);
+  return a === 100 && b >= 64 && b <= 127;
+}
 function ehPrivado(endereco) {
   const [a, b] = String(endereco).split('.').map(Number);
   return a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168);
@@ -71,6 +104,18 @@ function ehPrivado(endereco) {
 
 function novoToken() {
   return crypto.randomBytes(32).toString('hex');
+}
+// O código fica guardado (cifrado pelo sistema, pela main) para o atalho do celular continuar valendo depois de
+// fechar e abrir o app. Só muda em "Gerar novo código". Sem guarda (testes), cada ligada gera um código novo.
+let guardaToken = null; // { ler(): string|null, gravar(t) }
+function definirGuardaToken(g) { guardaToken = g && typeof g.ler === 'function' && typeof g.gravar === 'function' ? g : null; }
+function tokenGuardadoOuNovo() {
+  let t = null;
+  try { t = guardaToken && guardaToken.ler(); } catch { t = null; }
+  if (typeof t === 'string' && /^[0-9a-f]{64}$/.test(t)) return t;
+  t = novoToken();
+  try { if (guardaToken) guardaToken.gravar(t); } catch { /* sem guarda: vale só nesta sessão */ }
+  return t;
 }
 function tokenValido(cabecalho) {
   const m = /^Bearer ([0-9a-f]{64})$/.exec(String(cabecalho || ''));
@@ -133,6 +178,12 @@ const inteiroId = (v) => (Number.isSafeInteger(v) && v >= 0 ? v : null);
 // Trecho de uma lista: no máximo `max` itens, cada um pelo `f`, sem os que vierem vazios.
 const trecho = (v, max, f) => (Array.isArray(v) ? v.slice(0, max).map((x) => (x && typeof x === 'object' ? f(x) : null)).filter(Boolean) : []);
 
+// Região: só id curto de letras minúsculas (kanto, johto...). Qualquer outra coisa vira vazio.
+const idRegiao = (v) => (typeof v === 'string' && /^[a-z]{1,20}$/.test(v) ? v : null);
+// Números arredondados (taxas por hora da análise de hunts): inteiro não negativo ou vazio.
+const inteiroPositivo = (v) => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? Math.round(v) : null);
+const contaValida = (v) => Number.isSafeInteger(v) && v >= 0 && v < MAX_CONTAS;
+
 // Lista da aba Controle (vem do motor, pela central). Só os campos abaixo passam.
 function sanitizarControle(c) {
   if (!c || typeof c !== 'object') return null;
@@ -140,8 +191,6 @@ function sanitizarControle(c) {
     const id = inteiroId(x.id);
     return id === null ? null : { id, nome: texto(x.nome, 60) || 'Pokémon', nivel: numero(x.nivel), hp: numero(x.hp), hpMax: numero(x.hpMax), shiny: x.shiny === true, ativo: x.ativo === true, slot: numero(x.slot) };
   };
-  // Região: só id curto de letras minúsculas (kanto, johto...). Qualquer outra coisa vira vazio.
-  const idRegiao = (v) => (typeof v === 'string' && /^[a-z]{1,20}$/.test(v) ? v : null);
   return {
     hunts: trecho(c.hunts, MAX_HUNTS, (h) => {
       const slug = texto(h.slug, 60);
@@ -164,6 +213,186 @@ function sanitizarControle(c) {
     })
   };
 }
+
+// Regra do sniper, só com os campos que a aba Sniper usa. `compradas` sai aqui, mas o celular nunca a manda de volta.
+const regraSnap = (r) => {
+  if (!r || typeof r !== 'object') return null;
+  const id = typeof r.id === 'string' && Regras.ID_REGRA.test(r.id) ? r.id : null;
+  if (id === null || (r.tipo !== 'item' && r.tipo !== 'pokemon')) return null;
+  return {
+    id,
+    tipo: r.tipo,
+    ativa: r.ativa !== false,
+    alvo: texto(r.alvo, 60) || '',
+    itemId: inteiroId(r.itemId) ?? 0,
+    modo: r.modo === 'media' ? 'media' : 'fixo',
+    desconto: numero(r.desconto),
+    moedaMedia: texto(r.moedaMedia, 10),
+    minVendas: numero(r.minVendas),
+    aprovar: r.aprovar === true,
+    maxGold: numero(r.maxGold) ?? 0,
+    maxGemas: numero(r.maxGemas) ?? 0,
+    maxQtd: numero(r.maxQtd) ?? 0,
+    compradas: numero(r.compradas) ?? 0,
+    resumo: texto(r.resumo, 200) || ''
+  };
+};
+const sanitizarSniper = (s) => (s && typeof s === 'object' ? { margemMs: numero(s.margemMs), varreduraSeg: numero(s.varreduraSeg) } : null);
+// Aba Captura: o que a conta lança e a reposição (configuração), e o status que o PC mostra.
+const sanitizarCaptura = (x) => {
+  if (!x || typeof x !== 'object') return null;
+  const reposicao = (r) => {
+    const d = r && typeof r === 'object' ? r : {};
+    return { ativo: d.ativo === true, id: inteiroId(d.id) ?? 0, abaixoDe: numero(d.abaixoDe), qtd: numero(d.qtd), limite: numero(d.limite) };
+  };
+  const bola = (b) => {
+    const id = b && typeof b === 'object' ? inteiroId(b.id) : null;
+    return id === null ? null : { id, nome: texto(b.nome, 30) || 'Bola', qtd: numero(b.qtd) ?? 0 };
+  };
+  const loja = (b) => {
+    const id = b && typeof b === 'object' ? inteiroId(b.id) : null;
+    return id === null ? null : { id, nome: texto(b.nome, 30) || 'Item', preco: numero(b.preco) };
+  };
+  const status = (s) => {
+    const d = s && typeof s === 'object' ? s : {};
+    return { aviso: texto(d.aviso, 160), pendente: d.pendente === true, compras: numero(d.compras), ultimaQtd: numero(d.ultimaQtd), ultimaEm: numero(d.ultimaEm) };
+  };
+  const rep = x.reposicao && typeof x.reposicao === 'object' ? x.reposicao : {};
+  const rs = x.reposicaoStatus && typeof x.reposicaoStatus === 'object' ? x.reposicaoStatus : {};
+  const uc = x.ultimaCaptura && typeof x.ultimaCaptura === 'object'
+    ? { nome: texto(x.ultimaCaptura.nome, 60) || '', shiny: x.ultimaCaptura.shiny === true, bolas: numero(x.ultimaCaptura.bolas) ?? 0 }
+    : null;
+  const est = x.estoqueRep && typeof x.estoqueRep === 'object' ? x.estoqueRep : {};
+  return {
+    ativo: x.ativo === true,
+    modo: x.modo === 'sempre' ? 'sempre' : 'capturar',
+    ballId: inteiroId(x.ballId) ?? 1,
+    reposicao: { bola: reposicao(rep.bola), pocao: reposicao(rep.pocao) },
+    pausa: texto(x.pausa, 30),
+    lancadas: numero(x.lancadas),
+    capturas: numero(x.capturas),
+    perdidos: numero(x.perdidos),
+    chance: numero(x.chance),
+    ultimaEm: numero(x.ultimaEm),
+    ultimaCaptura: uc,
+    bolas: trecho(x.bolas, 10, bola),
+    lojaBolas: trecho(x.lojaBolas, 20, loja),
+    lojaPocoes: trecho(x.lojaPocoes, 20, loja),
+    estoqueRep: { bola: numero(est.bola), pocao: numero(est.pocao) },
+    reposicaoStatus: { bola: status(rs.bola), pocao: status(rs.pocao) }
+  };
+};
+
+// Análise de uma hunt (aba Hunts): só o que a lista do celular usa. Taxas arredondadas.
+const sanitizarHunt = (h) => {
+  const slug = texto(h.slug, 60);
+  if (!slug) return null;
+  const tipos = (lista) => trecho(lista, 18, (x) => {
+    const tipo = texto(x.tipo, 20);
+    const mult = numero(x.mult);
+    return tipo && mult !== null ? { tipo, mult } : null;
+  });
+  return {
+    slug,
+    nome: texto(h.nome, 60) || slug,
+    regiao: idRegiao(h.regiao),
+    nivel: numero(h.nivel),
+    liberada: h.liberada === true,
+    atual: h.atual === true,
+    xpTrH: inteiroPositivo(h.xpTrH),
+    xpPkH: inteiroPositivo(h.xpPkH),
+    goldH: inteiroPositivo(h.goldH),
+    killsH: inteiroPositivo(h.killsH),
+    fracos: tipos(h.fracos),
+    resiste: tipos(h.resiste)
+  };
+};
+// Linha do registro: hora, nível (info, aviso ou erro) e texto curto.
+const NIVEIS_REGISTRO = ['info', 'aviso', 'erro'];
+const sanitizarLinha = (l) => {
+  const msg = texto(l.msg, 200);
+  return msg ? { em: numero(l.em), nivel: NIVEIS_REGISTRO.includes(l.nivel) ? l.nivel : 'info', msg } : null;
+};
+const MOEDAS_OFERTA = ['orb', 'gold'];
+const ESTADOS_PRECO = ['disp', 'sem_oferta', 'nao_lido', 'desatualizado'];
+const RESULTADOS_COMPRA = ['ganhou', 'perdeu', 'recusado', 'sem resposta', 'aguardando'];
+const sanitizarPreco = (p) => {
+  const id = inteiroId(p.id);
+  if (id === null) return null;
+  const estado = (v) => (ESTADOS_PRECO.includes(v) ? v : 'nao_lido');
+  return {
+    id,
+    nome: texto(p.nome, 60) || 'Item',
+    cat: texto(p.cat, 20) || '',
+    qtd: numero(p.qtd),
+    eG: estado(p.eG),
+    eO: estado(p.eO),
+    gold: numero(p.gold),
+    gema: numero(p.gema),
+    goldUlt: numero(p.goldUlt),
+    gemaUlt: numero(p.gemaUlt),
+    mediaGema: numero(p.mediaGema),
+    vendasGema: numero(p.vendasGema),
+    em: numero(p.em)
+  };
+};
+const sanitizarOferta = (o) => {
+  const nome = texto(o.nome, 60);
+  return nome ? {
+    conta: texto(o.conta, 40) || '',
+    nome,
+    qtd: numero(o.qtd) ?? 1,
+    preco: numero(o.preco),
+    moeda: MOEDAS_OFERTA.includes(o.moeda) ? o.moeda : 'gold',
+    pctMedia: numero(o.pctMedia),
+    media: numero(o.media),
+    origem: texto(o.origem, 20) || '',
+    recebidaEm: numero(o.recebidaEm),
+    liberaEm: numero(o.liberaEm)
+  } : null;
+};
+const sanitizarCompra = (c) => {
+  const nome = texto(c.nome, 60);
+  return nome ? {
+    em: numero(c.em),
+    conta: texto(c.conta, 40) || '',
+    nome,
+    qtd: numero(c.qtd) ?? 1,
+    preco: numero(c.preco),
+    total: numero(c.total),
+    moeda: MOEDAS_OFERTA.includes(c.moeda) ? c.moeda : 'gold',
+    origem: texto(c.origem, 30) || '',
+    resultado: RESULTADOS_COMPRA.includes(c.resultado) ? c.resultado : 'sem resposta'
+  } : null;
+};
+const sanitizarRadar = (r) => {
+  if (!r || typeof r !== 'object') return null;
+  return {
+    ativo: r.ativo === true,
+    conta: contaValida(r.conta) ? r.conta : 0,
+    desconto: numero(r.desconto),
+    moedaMedia: ['orb', 'gold', 'ambas'].includes(r.moedaMedia) ? r.moedaMedia : 'orb',
+    minVendas: numero(r.minVendas),
+    auto: r.auto === true,
+    minutos: numero(r.minutos)
+  };
+};
+// Lives: a conta que abre, a qualidade, as opções (abrir sozinha e conferir) e a lista de canais.
+const sanitizarLives = (l) => {
+  if (!l || typeof l !== 'object') return null;
+  const al = l.autoLive && typeof l.autoLive === 'object' ? l.autoLive : {};
+  return {
+    contaLives: contaValida(l.contaLives) ? l.contaLives : 0,
+    qualidade: texto(l.qualidade, 20) || '160p30',
+    manterLives: l.manterLives !== false,
+    autoLive: { ativo: al.ativo === true, conta: contaValida(al.conta) ? al.conta : 0 },
+    lista: trecho(l.lista, MAX_LIVES, (x) => {
+      const nome = texto(x.nome, 60);
+      const plataforma = x.plataforma === 'kick' || x.plataforma === 'twitch' ? x.plataforma : null;
+      return nome && plataforma ? { plataforma, nome, aoVivo: x.aoVivo === true, viewers: numero(x.viewers) ?? 0 } : null;
+    })
+  };
+};
 
 function sanitizarConta(c) {
   const d = c && typeof c === 'object' ? c : {};
@@ -190,19 +419,110 @@ function sanitizarConta(c) {
     drops: Array.isArray(d.drops) ? d.drops.slice(0, 12).map(item).filter((x) => x && x.nome) : [],
     sniperLigado: d.sniperLigado === true,
     capturaLigada: d.capturaLigada === true,
-    controle: sanitizarControle(d.controle)
+    mudo: d.mudo === true,
+    fila: numero(d.fila),
+    gastos: d.gastos && typeof d.gastos === 'object' ? { pocoes: numero(d.gastos.pocoes), bolas: numero(d.gastos.bolas) } : null,
+    shinies: d.shinies && typeof d.shinies === 'object' ? { vistos: numero(d.shinies.vistos), capturados: numero(d.shinies.capturados) } : null,
+    xpBonus: numero(d.xpBonus),
+    ultimoSniper: d.ultimoSniper && typeof d.ultimoSniper === 'object'
+      ? { nivel: texto(d.ultimoSniper.nivel, 10) || 'info', msg: texto(d.ultimoSniper.msg, 200) || '' }
+      : null,
+    controle: sanitizarControle(d.controle),
+    regras: trecho(d.regras, MAX_REGRAS, regraSnap),
+    captura: sanitizarCaptura(d.captura)
   };
 }
 
 // A central manda o snapshot a cada 3 s; o painel guarda só o último.
 function guardarSnapshot(dados) {
   if (!servidor || !dados || !Array.isArray(dados.contas)) return;
-  ultimoSnapshot = { geradoEm: Date.now(), contas: dados.contas.slice(0, MAX_CONTAS).map(sanitizarConta) };
+  ultimoSnapshot = {
+    geradoEm: Date.now(),
+    sniper: sanitizarSniper(dados.sniper),
+    versao: texto(dados.versao, 20) || '',
+    escala: dados.escala === 'auto' || [1, 0.9, 0.8, 0.75].includes(dados.escala) ? dados.escala : 'auto',
+    lives: sanitizarLives(dados.lives),
+    contas: dados.contas.slice(0, MAX_CONTAS).map(sanitizarConta)
+  };
+}
+
+// Detalhes sob demanda: a central manda quando algo muda (análise de hunts de uma conta, registro de uma
+// conta, ou o mercado inteiro). Cada envio troca o anterior daquele tipo.
+function guardarHunts(c, dados) {
+  if (!servidor || !contaValida(c) || !dados || !Array.isArray(dados.hunts)) return;
+  huntsDaConta[c] = {
+    em: numero(dados.em),
+    nivelTreinador: numero(dados.nivelTreinador),
+    fatorRitmo: numero(dados.fatorRitmo),
+    hunts: trecho(dados.hunts, MAX_HUNTS, sanitizarHunt)
+  };
+}
+function guardarRegistro(c, linhas) {
+  if (!servidor || !contaValida(c) || !Array.isArray(linhas)) return;
+  registroDaConta[c] = trecho(linhas.slice(-MAX_LINHAS_REGISTRO), MAX_LINHAS_REGISTRO, sanitizarLinha);
+}
+function guardarMercado(dados) {
+  if (!servidor || !dados || typeof dados !== 'object') return;
+  mercadoAtual = {
+    geradoEm: Date.now(),
+    leituraEm: numero(dados.leituraEm),
+    leituraConta: texto(dados.leituraConta, 40) || '',
+    limiteMs: numero(dados.limiteMs),
+    radar: sanitizarRadar(dados.radar),
+    precos: trecho(dados.precos, MAX_PRECOS, sanitizarPreco),
+    ofertas: trecho(dados.ofertas, MAX_OFERTAS, sanitizarOferta),
+    compras: trecho(dados.compras, MAX_COMPRAS, sanitizarCompra)
+  };
+}
+// Uma mensagem da central com um detalhe (tipo: hunts, registro ou mercado).
+function guardarDetalhe(d) {
+  if (!d || typeof d !== 'object') return;
+  if (d.tipo === 'hunts') guardarHunts(d.conta, d.dados);
+  else if (d.tipo === 'registro') guardarRegistro(d.conta, d.linhas);
+  else if (d.tipo === 'mercado') guardarMercado(d.dados);
+}
+
+// Catálogo do RMT (o mesmo que o seletor do PC mostra). Não é segredo; só vai ao celular quando ele pede.
+// Some junto com o painel (desligar): a central manda de novo ao ligar.
+function guardarCatalogo(lista) {
+  if (!servidor || !Array.isArray(lista)) return;
+  catalogoAtual = lista.slice(0, MAX_CATALOGO).map((x) => {
+    const id = x && typeof x === 'object' ? inteiroId(x.id) : null;
+    const nome = id === null ? null : texto(x.nome, 60);
+    return nome ? { id, nome, grupo: texto(x.grupo, 20) || '' } : null;
+  }).filter(Boolean);
 }
 
 function respostaEstado() {
-  if (!ultimoSnapshot) return { geradoEm: null, idadeMs: null, contas: [] };
-  return { geradoEm: ultimoSnapshot.geradoEm, idadeMs: Date.now() - ultimoSnapshot.geradoEm, contas: ultimoSnapshot.contas };
+  if (!ultimoSnapshot) return { geradoEm: null, idadeMs: null, sniper: null, versao: '', escala: 'auto', lives: null, contas: [] };
+  const s = ultimoSnapshot;
+  return { geradoEm: s.geradoEm, idadeMs: Date.now() - s.geradoEm, sniper: s.sniper, versao: s.versao, escala: s.escala, lives: s.lives, contas: s.contas };
+}
+
+// Respostas dos detalhes (GET /api/hunts?conta=N, /api/registro[?conta=N], /api/mercado).
+function respostaHunts(c) {
+  const d = huntsDaConta[c];
+  return d ? { pronto: true, em: d.em, nivelTreinador: d.nivelTreinador, fatorRitmo: d.fatorRitmo, hunts: d.hunts }
+    : { pronto: false, em: null, nivelTreinador: null, fatorRitmo: null, hunts: [] };
+}
+// Registro mais novo primeiro; sem conta, as contas juntas (até 200 linhas).
+function respostaRegistro(c) {
+  const lista = c === null
+    ? registroDaConta.flatMap((linhas, i) => linhas.map((l) => ({ ...l, conta: i })))
+    : registroDaConta[c].map((l) => ({ ...l, conta: c }));
+  return { linhas: lista.sort((a, b) => (b.em || 0) - (a.em || 0)).slice(0, c === null ? 200 : MAX_LINHAS_REGISTRO) };
+}
+function respostaMercado() {
+  return mercadoAtual ? { pronto: true, ...mercadoAtual }
+    : { pronto: false, geradoEm: null, leituraEm: null, leituraConta: '', limiteMs: null, radar: null, precos: [], ofertas: [], compras: [] };
+}
+// Conta na consulta: 0 a 3 (qualquer outra coisa é recusada); vazio é "sem conta".
+const contaDaConsulta = (v) => (/^[0-9]$/.test(v || '') && contaValida(Number(v)) ? Number(v) : null);
+
+// Bolas da loja da conta (para conferir a reposição); vazio até a central mandar a loja.
+function lojaBolasDaConta(conta) {
+  const c = ultimoSnapshot && ultimoSnapshot.contas[conta];
+  return c && c.captura ? c.captura.lojaBolas : [];
 }
 
 function paginaHtml() {
@@ -211,9 +531,10 @@ function paginaHtml() {
 }
 
 // Campos de cada ação. Só estes passam; o resto do corpo é ignorado. centro e curar não têm campos.
-function validarAcao(c) {
+// As ações de sniper e captura usam as mesmas regras do PC (regras.js): campo fora da lista, recusa.
+function validarAcao(c, consulta = { lojaBolas: () => [] }) {
   if (!c || typeof c !== 'object' || Array.isArray(c)) return { erro: 'pedido inválido' };
-  const conta = Number.isSafeInteger(c.conta) && c.conta >= 0 && c.conta < MAX_CONTAS ? c.conta : null;
+  const conta = contaValida(c.conta) ? c.conta : null;
   if (conta === null) return { erro: 'conta inválida' };
   if (typeof c.acao !== 'string' || !ACOES.includes(c.acao)) return { erro: 'ação desconhecida' };
   const params = {};
@@ -251,6 +572,53 @@ function validarAcao(c) {
     case 'captura': {
       if (typeof c.ligado !== 'boolean') return { erro: 'ligado deve ser true ou false' };
       params.ligado = c.ligado;
+      break;
+    }
+    case 'sniperRegraSalvar': {
+      const v = Regras.validarRegraDoCelular(c.regra);
+      if (v.erro) return { erro: v.erro };
+      params.regra = v.valor;
+      break;
+    }
+    case 'sniperRegraApagar':
+    case 'sniperRegraAtiva': {
+      if (typeof c.id !== 'string' || !Regras.ID_REGRA.test(c.id)) return { erro: 'regra inválida' };
+      params.id = c.id;
+      if (c.acao === 'sniperRegraAtiva') {
+        if (typeof c.ativa !== 'boolean') return { erro: 'ativa deve ser true ou false' };
+        params.ativa = c.ativa;
+      }
+      break;
+    }
+    case 'sniperOpcoes': {
+      const v = Regras.validarOpcoesSniper({ margemMs: c.margemMs, varreduraSeg: c.varreduraSeg });
+      if (v.erro) return { erro: v.erro };
+      Object.assign(params, v.valor);
+      break;
+    }
+    case 'capturaConfig': {
+      const v = Regras.validarParcialCaptura(c.parcial, consulta.lojaBolas(conta));
+      if (v.erro) return { erro: v.erro };
+      params.parcial = v.valor;
+      break;
+    }
+    // Análise de hunts: sem campos. A conta tem de estar conectada (confere o app).
+    case 'huntsAtualizar':
+      break;
+    case 'liveAbrir': {
+      const v = Regras.validarLiveAbrir({ plataforma: c.plataforma, canal: c.canal });
+      if (v.erro) return { erro: v.erro };
+      Object.assign(params, v.valor);
+      break;
+    }
+    case 'livesOpcoes':
+    case 'radarOpcoes':
+    case 'configOpcoes': {
+      const v = c.acao === 'livesOpcoes' ? Regras.validarLivesDoCelular(c.parcial)
+        : c.acao === 'radarOpcoes' ? Regras.validarRadarDoCelular(c.parcial)
+          : Regras.validarConfigDoCelular(c.parcial);
+      if (v.erro) return { erro: v.erro };
+      params.parcial = v.valor;
       break;
     }
     default:
@@ -295,7 +663,7 @@ function acaoHttp(req, res, responder, origem) {
     if (erro) return responder(400, { ok: false, motivo: 'pedido inválido' });
     let corpo;
     try { corpo = JSON.parse(texto); } catch { return responder(400, { ok: false, motivo: 'JSON inválido' }); }
-    const v = validarAcao(corpo);
+    const v = validarAcao(corpo, { lojaBolas: lojaBolasDaConta });
     if (v.erro) return responder(400, { ok: false, motivo: v.erro });
     if (!aoAcao) return responder(503, { ok: false, motivo: 'O app ainda não está pronto para ações.' });
     if (!dentroDoLimiteAcao(origem)) return responder(429, { ok: false, motivo: 'ações demais: espere 1 s' });
@@ -329,16 +697,29 @@ function atender(req, res) {
   }
   if (req.method !== 'GET') return responder(405, { ok: false, motivo: 'método não permitido' }, { Allow: 'GET' });
 
-  let caminho;
+  let url;
   try {
-    caminho = new URL(req.url || '/', 'http://painel.local').pathname;
+    url = new URL(req.url || '/', 'http://painel.local');
   } catch {
     return responder(400, { ok: false, motivo: 'pedido inválido' });
   }
+  const caminho = url.pathname;
   // A página não tem dados: o código vem no fragmento da URL (#t=...), que o navegador não envia aqui.
   if (caminho === '/') return responder(200, paginaHtml(), { 'Content-Type': 'text/html; charset=utf-8' });
-  if (caminho !== '/api/estado') return responder(404, { ok: false, motivo: 'não encontrado' });
+  if (!ROTAS_DADOS.includes(caminho)) return responder(404, { ok: false, motivo: 'não encontrado' });
   if (!tokenValido(req.headers.authorization)) return responder(401, { ok: false, motivo: 'código inválido' });
+  if (caminho === '/api/catalogo') return responder(200, catalogoAtual ? { pronto: true, itens: catalogoAtual } : { pronto: false, itens: [] });
+  if (caminho === '/api/mercado') return responder(200, respostaMercado());
+  if (caminho === '/api/registro') {
+    // Sem ?conta=, mostra as quatro contas juntas; com ?conta=, só a conta pedida (0 a 3).
+    if (!url.searchParams.has('conta')) return responder(200, respostaRegistro(null));
+    const c = contaDaConsulta(url.searchParams.get('conta'));
+    return c === null ? responder(400, { ok: false, motivo: 'conta inválida' }) : responder(200, respostaRegistro(c));
+  }
+  if (caminho === '/api/hunts') {
+    const c = contaDaConsulta(url.searchParams.get('conta'));
+    return c === null ? responder(400, { ok: false, motivo: 'conta inválida' }) : responder(200, respostaHunts(c));
+  }
   return responder(200, respostaEstado());
 }
 
@@ -360,11 +741,11 @@ function escutar(p) {
 }
 
 // O QR leva o endereço e o código juntos: http://IP:PORTA/#t=TOKEN (o fragmento não vai ao servidor).
-function qrDoCodigo() {
-  if (!qrcode || !servidor) return null;
+function qrDoCodigo(endereco = ip) {
+  if (!qrcode || !servidor || !endereco) return null;
   try {
     const qr = qrcode(0, 'M');
-    qr.addData(`http://${ip}:${porta}/#t=${token}`);
+    qr.addData(`http://${endereco}:${porta}/#t=${token}`);
     qr.make();
     const svg = qr.createSvgTag({ cellSize: 4, margin: 2 });
     return 'data:image/svg+xml;base64,' + Buffer.from(svg, 'utf8').toString('base64');
@@ -374,20 +755,25 @@ function qrDoCodigo() {
 }
 
 function resposta() {
-  return { ok: true, ligado: true, url: `http://${ip}:${porta}`, qr: qrDoCodigo(), motivo: null };
+  // Fora de casa: o Tailscale é procurado a cada consulta (pode ter sido ligado depois do painel).
+  const ts = ipTailscale();
+  return {
+    ok: true, ligado: true, url: ip ? `http://${ip}:${porta}` : null, qr: qrDoCodigo(ip),
+    urlFora: ts ? `http://${ts}:${porta}` : null, qrFora: ts ? qrDoCodigo(ts) : null, motivo: null
+  };
 }
 function desligado() {
-  return { ok: true, ligado: false, url: null, qr: null, motivo: null };
+  return { ok: true, ligado: false, url: null, qr: null, urlFora: null, qrFora: null, motivo: null };
 }
 function semLigar(motivo) {
   token = '';
-  return { ok: false, ligado: false, url: null, qr: null, motivo };
+  return { ok: false, ligado: false, url: null, qr: null, urlFora: null, qrFora: null, motivo };
 }
 
 async function subir() {
   const rede = ipDaRede();
-  if (!rede) return semLigar('Não achei um endereço de rede (Wi-Fi ou cabo) neste computador. Conecte-o à rede e ligue o painel de novo.');
-  token = novoToken();
+  if (!rede && !ipTailscale()) return semLigar('Não achei um endereço de rede (Wi-Fi ou cabo) neste computador. Conecte-o à rede e ligue o painel de novo.');
+  token = tokenGuardadoOuNovo();
   for (const p of PORTAS) {
     try {
       servidor = await escutar(p);
@@ -420,6 +806,10 @@ function desligar() {
   ip = '';
   porta = 0;
   ultimoSnapshot = null;
+  catalogoAtual = null;
+  huntsDaConta = [null, null, null, null];
+  registroDaConta = [[], [], [], []];
+  mercadoAtual = null;
   pedidosPorIp.clear();
   acoesPorIp.clear();
   ipsAtivos.clear();
@@ -430,6 +820,7 @@ function desligar() {
 function novoCodigo() {
   if (!servidor) return semLigar('O painel está desligado. Ligue-o primeiro.');
   token = novoToken();
+  try { if (guardaToken) guardaToken.gravar(token); } catch { /* vale só nesta sessão */ }
   return resposta();
 }
 
@@ -451,4 +842,4 @@ async function subirParaTestes() {
   return { porta, token };
 }
 
-module.exports = { ligar, desligar, novoCodigo, estado, guardarSnapshot, definirAcao, subirParaTestes };
+module.exports = { definirGuardaToken, ligar, desligar, novoCodigo, estado, guardarSnapshot, guardarCatalogo, guardarDetalhe, definirAcao, subirParaTestes, _ehTailscale: ehTailscale };

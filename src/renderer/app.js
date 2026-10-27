@@ -12,6 +12,11 @@ let twitchUsuario = ['', '', '', ''];
 let livesMudas = false;
 let editando = 0;         // conta cujo sniper está aberto na aba Sniper
 const reivindicados = new Map(); // offerId -> { conta, em }: um anúncio, uma conta
+// Celular: o Registro de cada conta (últimas 100 linhas) e o que mudou desde o último envio ao painel.
+const registroCelular = [[], [], [], []];
+const celularSujo = { hunts: new Set(), registro: new Set(), mercado: false };
+let mercadoEnviadoEm = 0;
+let versaoApp = '';
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -618,6 +623,7 @@ async function carregarCatalogo() {
   lista.sort((a, b) => a.name.localeCompare(b.name));
   catalogo.lista = lista;
   catalogo.pronto = true;
+  if (celularLigado) enviarCatalogoCelular();
 }
 
 function desenharCatalogo() {
@@ -782,6 +788,7 @@ const sugestoesPendentes = []; // { conta, id, nome, itemId, preco, moeda, qtd, 
 function receberSugestao(i, s) {
   if (sugestoesPendentes.some((x) => x.conta === i && x.id === s.id)) return;
   sugestoesPendentes.unshift({ ...s, conta: i, recebidaEm: Date.now(), offset: Date.now() - s.agoraServidor });
+  celularSujo.mercado = true;
   desenharSugestoes();
 }
 
@@ -790,6 +797,7 @@ function resolverSugestao(s, aprovar) {
   if (c && c.pronta) c.webview.send('central', { tipo: aprovar ? 'aprovarSugestao' : 'ignorarSugestao', id: s.id });
   const k = sugestoesPendentes.indexOf(s);
   if (k >= 0) sugestoesPendentes.splice(k, 1);
+  celularSujo.mercado = true;
   desenharSugestoes();
 }
 
@@ -867,6 +875,7 @@ function registroDeCompra(r, conta) {
 // Guarda um registro final (ganhou, perdeu, recusado ou sem resposta) e atualiza as duas telas.
 function guardarCompra(registro) {
   compras = [registro, ...compras.filter((c) => c.uid !== registro.uid)].sort((a, b) => b.em - a.em).slice(0, 2000);
+  celularSujo.mercado = true;
   window.central.registrarCompras([registro]);
   desenharSorteios();
   desenharHistoricoCompras();
@@ -1095,6 +1104,7 @@ async function receberHunts(i, dados) {
     return;
   }
   hunts.dados[i] = dados;
+  celularSujo.hunts.add(i);
   if (Number($('#hunts-conta').value) === i) desenharHunts();
 }
 
@@ -1340,32 +1350,45 @@ function atualizarPrecos(manual) {
   c.webview.send('central', { tipo: 'varrerPrecos' });
 }
 
-function montarMercado() {
-  const sel = $('#mercado-conta');
-  sel.replaceChildren(...config.contas.map((c, i) => el('option', { value: String(i) }, c.nome)));
-  const rd = { ativo: false, conta: 0, desconto: 30, moedaMedia: 'orb', minVendas: 5, auto: true, minutos: 2, ...(config.radar || {}) };
-  sel.value = String(rd.conta);
+// Opções do radar (aba Mercado e celular): o padrão, o que está salvo, e o que a tela mostra.
+const RADAR_PADRAO = { ativo: false, conta: 0, desconto: 30, moedaMedia: 'orb', minVendas: 5, auto: true, minutos: 2 };
+const radarAtual = () => ({ ...RADAR_PADRAO, ...(config.radar || {}) });
+function desenharRadar() {
+  const rd = radarAtual();
+  $('#mercado-conta').value = String(rd.conta);
   $('#radar-ativo').checked = rd.ativo;
   $('#radar-desconto').value = rd.desconto;
   $('#radar-moeda').value = rd.moedaMedia;
   $('#radar-vendas').value = rd.minVendas;
   $('#radar-auto').checked = rd.auto;
   $('#radar-minutos').value = rd.minutos;
-  const salvarRadar = async () => {
-    await salvar({ radar: {
-      ativo: $('#radar-ativo').checked,
-      conta: Number(sel.value),
-      desconto: Math.min(95, Math.max(1, Number($('#radar-desconto').value) || 30)),
-      moedaMedia: $('#radar-moeda').value,
-      minVendas: Math.max(0, Number($('#radar-vendas').value) || 0),
-      auto: $('#radar-auto').checked,
-      minutos: Math.min(60, Math.max(1, Number($('#radar-minutos').value) || 2))
-    } });
-    enviarSniper();
-    if (config.radar.ativo) atualizarPrecos(false);
+}
+// Salva as opções do radar e aplica na hora. Vale para a aba Mercado e para o celular (mesmo caminho).
+async function salvarRadar(parcial) {
+  await salvar({ radar: { ...radarAtual(), ...parcial } });
+  desenharRadar();
+  enviarSniper();
+  if (config.radar.ativo) atualizarPrecos(false);
+  celularSujo.mercado = true;
+}
+function lerRadarDaTela() {
+  return {
+    ativo: $('#radar-ativo').checked,
+    conta: Number($('#mercado-conta').value),
+    desconto: Math.min(95, Math.max(1, Number($('#radar-desconto').value) || 30)),
+    moedaMedia: $('#radar-moeda').value,
+    minVendas: Math.max(0, Number($('#radar-vendas').value) || 0),
+    auto: $('#radar-auto').checked,
+    minutos: Math.min(60, Math.max(1, Number($('#radar-minutos').value) || 2))
   };
+}
+
+function montarMercado() {
+  const sel = $('#mercado-conta');
+  sel.replaceChildren(...config.contas.map((c, i) => el('option', { value: String(i) }, c.nome)));
+  desenharRadar();
   for (const id of ['#radar-ativo', '#radar-desconto', '#radar-moeda', '#radar-vendas', '#radar-auto', '#radar-minutos', '#mercado-conta']) {
-    $(id).addEventListener('change', salvarRadar);
+    $(id).addEventListener('change', () => salvarRadar(lerRadarDaTela()));
   }
   $('#mercado-atualizar').addEventListener('click', () => atualizarPrecos(true));
   // Os "há N min" e o "desatualizado" envelhecem sozinhos: redesenha a tabela a cada 30 s, só com a aba aberta.
@@ -1396,6 +1419,7 @@ async function receberPrecos(i, dados) {
   mercado.medias = dados.medias || {};
   mercado.em = dados.em;
   mercado.conta = i;
+  celularSujo.mercado = true;
   const r = config.radar || {};
   $('#radar-status').textContent = `Preços lidos às ${new Date(dados.em).toLocaleTimeString('pt-BR')}` +
     (r.ativo ? ` · radar procurando ${r.desconto}% abaixo da média` : '') +
@@ -1492,12 +1516,8 @@ function linhaDoMercado(base, l, agora, limite) {
   };
 }
 
-function desenharMercado() {
-  desenharCategoriasMercado();
-  if (!mercado.em) return;
-  const soAmbas = $('#mercado-ambas').checked;
-  const filtro = mercado.filtro;
-  const NOME_CAT = Object.fromEntries(CATEGORIAS_MERCADO);
+// As linhas do mercado (lidas e as raras ainda não lidas), na ordem da tabela. Usada pela aba e pelo celular.
+function linhasDoMercado(filtro, soAmbas) {
   const agora = Date.now();
   const limite = limiteDesatualizado();
   const linhas = [];
@@ -1521,6 +1541,17 @@ function desenharMercado() {
   // Os mais baratos em relação à média primeiro; sem média, pelo Coins por Gema. Sem preço vai para o fim.
   const pct = (l) => (l.mediaGema && l.gema ? l.gema / l.mediaGema : Infinity);
   linhas.sort((a, b) => pct(a) - pct(b) || (a.coinsPorGema ?? Infinity) - (b.coinsPorGema ?? Infinity));
+  return linhas;
+}
+
+function desenharMercado() {
+  desenharCategoriasMercado();
+  if (!mercado.em) return;
+  const soAmbas = $('#mercado-ambas').checked;
+  const filtro = mercado.filtro;
+  const NOME_CAT = Object.fromEntries(CATEGORIAS_MERCADO);
+  const limite = limiteDesatualizado();
+  const linhas = linhasDoMercado(filtro, soAmbas);
   if (!linhas.length) {
     return $('#mercado-tabela').replaceChildren(el('p', { class: 'vazio' },
       soAmbas ? 'Nenhum item desta categoria à venda nas duas moedas agora. Desmarque "Só itens à venda nas duas moedas" para ver todos.' : 'Nenhum anúncio nesta categoria agora.'));
@@ -1601,9 +1632,8 @@ function enviarSniper() {
 
 // ------------------------------------------------------------------ Captura: lançar bolas
 
-const NOMES_BOLA = { 1: 'Poké Ball', 2: 'Great Ball', 3: 'Super Ball', 4: 'Ultra Ball', 5: 'Beast Ball' };
-// Poções da loja do jogo (preço fixo em Coins por unidade).
-const POCOES_LOJA = [[200, 'Small Potion', 50], [201, 'Great Potion', 150], [202, 'Ultra Potion', 400], [203, 'Hyper Potion', 800], [204, 'Ultimate Potion', 1500], [70070, 'Golden Potion', 2500]];
+// Bolas, poções e regras do sniper/captura: o mesmo código que o painel do celular usa (regras.js).
+const { NOMES_BOLA, POCOES_LOJA } = window.Regras;
 const REPOSICAO_PADRAO = () => ({
   bola: { ativo: false, id: 1, abaixoDe: 50, qtd: 1000, limite: 0 },
   pocao: { ativo: false, id: 200, abaixoDe: 50, qtd: 1000, limite: 0 }
@@ -1855,30 +1885,43 @@ function montarSniper() {
     const tipo = f.get('tipo');
     const anterior = regraEmEdicao && config.sniper.contas[editando].regras.find((x) => x.id === regraEmEdicao);
     const modo = tipo === 'item' ? f.get('modo') || 'fixo' : 'fixo';
-    const regra = {
-      id: anterior ? anterior.id : crypto.randomUUID(),
-      ativa: anterior ? anterior.ativa : true,
-      tipo,
-      alvo: String(f.get('alvo') || '').trim(),
-      itemId: tipo === 'item' ? Number(f.get('itemId')) || 0 : 0,
-      ...(tipo === 'pokemon' ? lerFiltrosPokemon(f) : {}),
-      ...(modo === 'media' ? {
+    let regra;
+    if (tipo === 'item') {
+      // Regra de item: a mesma montagem e validação que o celular usa (regras.js).
+      const r = Regras.regraDeItem({
+        alvo: String(f.get('alvo') || '').trim(),
+        itemId: Number(f.get('itemId')) || 0,
         modo,
-        desconto: Math.min(95, Math.max(1, Number(f.get('desconto')) || 30)),
+        desconto: Number(f.get('desconto')) || 30,
         moedaMedia: f.get('moedaMedia') || 'orb',
-        minVendas: Math.max(0, Number(f.get('minVendas')) || 0),
-        aprovar: f.get('aprovar') === 'on'
-      } : { modo: 'fixo' }),
-      maxGold: Number(f.get('maxGold')) || 0,
-      maxGemas: Number(f.get('maxGemas')) || 0,
-      maxQtd: Number(f.get('maxQtd')) || 0,
-      compradas: anterior ? anterior.compradas || 0 : 0
-    };
-    if (tipo === 'item' && modo === 'fixo' && !regra.alvo && !regra.itemId) return alert('Informe o nome ou o ID do item.');
-    if (tipo === 'pokemon' && !regra.alvo && !regra.especieId && !temFiltroPokemon(regra)) {
-      return alert('Escolha a espécie ou ao menos um filtro (raridade ou faixa).');
+        minVendas: Number(f.get('minVendas')) || 0,
+        aprovar: f.get('aprovar') === 'on',
+        maxGold: Number(f.get('maxGold')) || 0,
+        maxGemas: Number(f.get('maxGemas')) || 0,
+        maxQtd: Number(f.get('maxQtd')) || 0
+      }, anterior);
+      if (r.erro) return alert(r.erro);
+      regra = r.valor;
+    } else {
+      regra = {
+        id: anterior ? anterior.id : crypto.randomUUID(),
+        ativa: anterior ? anterior.ativa : true,
+        tipo,
+        alvo: String(f.get('alvo') || '').trim(),
+        itemId: 0,
+        ...lerFiltrosPokemon(f),
+        modo: 'fixo',
+        maxGold: Number(f.get('maxGold')) || 0,
+        maxGemas: Number(f.get('maxGemas')) || 0,
+        maxQtd: Number(f.get('maxQtd')) || 0,
+        compradas: anterior ? anterior.compradas || 0 : 0
+      };
+      if (!regra.alvo && !regra.especieId && !temFiltroPokemon(regra)) {
+        return alert('Escolha a espécie ou ao menos um filtro (raridade ou faixa).');
+      }
+      const motivo = Regras.erroTetos('fixo', regra);
+      if (motivo) return alert(motivo);
     }
-    if (modo === 'fixo' && !regra.maxGold && !regra.maxGemas) return alert('Defina um teto em Coins ou em Gemas.');
     const atuais = config.sniper.contas[editando].regras;
     const regras = anterior ? atuais.map((x) => (x.id === anterior.id ? regra : x)) : [...atuais, regra];
     await salvarConta(editando, { regras });
@@ -2016,6 +2059,11 @@ function desenharRegras() {
 
 function adicionarLog(i, d) {
   const log = $('#log');
+  // Cópia para o Registro do celular (só as últimas 100 de cada conta).
+  const linhas = registroCelular[i];
+  linhas.push({ em: d.em || Date.now(), nivel: d.nivel === 'erro' ? 'erro' : d.nivel === 'aviso' || d.nivel === 'recusado' ? 'aviso' : 'info', msg: String(d.msg || '') });
+  if (linhas.length > 100) linhas.splice(0, linhas.length - 100);
+  celularSujo.registro.add(i);
   const hora = new Date(d.em || Date.now()).toLocaleTimeString('pt-BR');
   log.prepend(el('div', { class: 'item', 'data-conta': String(i) },
     el('span', { class: 'hora' }, hora),
@@ -2138,6 +2186,16 @@ function desenharLives() {
         el('button', { onclick: () => entrar(i, 'twitch') }, 'Entrar na Twitch'),
         el('button', { onclick: () => entrar(i, 'kick') }, 'Entrar na Kick')));
   }));
+}
+
+// Opções das lives (aba Lives e celular): a conta que abre, a qualidade, abrir sozinha e conferir.
+function desenharOpcoesLives() {
+  const auto = config.autoLive || { ativo: false, conta: 0 };
+  $('#lv-qualidade').value = config.qualidadeLives || '160p30';
+  $('#lv-conta').value = String(config.contaLives || 0);
+  $('#lv-auto').checked = Boolean(auto.ativo);
+  $('#lv-auto-conta').value = String(auto.conta || 0);
+  $('#lv-manter').checked = config.manterLives !== false;
 }
 
 // Abre as lives no ar na conta de "Abrir as lives na conta". Sem plataforma, abre todas; com
@@ -2419,8 +2477,17 @@ async function montarConfig() {
 const INTERVALO_CELULAR_MS = 3000;
 let celularLigado = false;
 
+// Ao ligar o painel, tudo vai de novo (hunts, registro e mercado), não só o que mudar depois.
+function marcarTudoCelular() {
+  contas.forEach((_, i) => { celularSujo.hunts.add(i); celularSujo.registro.add(i); });
+  celularSujo.mercado = true;
+}
+
 function desenharCelular(r = {}) {
+  const estavaLigado = celularLigado;
   celularLigado = Boolean(r.ligado);
+  if (celularLigado && !estavaLigado) marcarTudoCelular();
+  if (!celularLigado) catalogoNoCelular = false; // na próxima ligada, o catálogo vai de novo
   const chave = $('#celular-chave');
   chave.classList.toggle('on', celularLigado);
   chave.setAttribute('aria-checked', String(celularLigado));
@@ -2430,6 +2497,16 @@ function desenharCelular(r = {}) {
   if (celularLigado && r.qr) qr.src = r.qr;
   else qr.removeAttribute('src');
   qr.hidden = !(celularLigado && r.qr);
+  $('#celular-qr-legenda').hidden = qr.hidden;
+  // Fora de casa: o QR do Tailscale, quando o PC está nele; senão, a dica de como instalar.
+  const qrFora = $('#celular-qr-fora');
+  if (celularLigado && r.qrFora) qrFora.src = r.qrFora;
+  else qrFora.removeAttribute('src');
+  qrFora.hidden = !(celularLigado && r.qrFora);
+  $('#celular-qr-fora-legenda').hidden = qrFora.hidden;
+  $('#celular-fora-dica').hidden = !celularLigado || Boolean(r.qrFora);
+  $('#celular-fora-endereco').hidden = !(celularLigado && r.urlFora);
+  $('#celular-fora-endereco').textContent = r.urlFora ? `Fora de casa: ${r.urlFora}` : '';
   $('#celular-novo').disabled = !celularLigado;
   $('#celular-status').textContent = r.motivo || '';
   $('#celular-status').className = 'nota' + (r.motivo ? ' erro' : '');
@@ -2462,14 +2539,97 @@ function montarPainelCelular() {
   });
   window.central.infoCelular().then(desenharCelular);
   setInterval(enviarCelular, INTERVALO_CELULAR_MS);
+  // O Tailscale pode ser ligado depois do painel: confere de novo de tempos em tempos (sem mexer no status).
+  setInterval(() => {
+    if (!celularLigado) return;
+    window.central.infoCelular().then((r) => { if (r && r.ligado && Boolean(r.qrFora) !== !$('#celular-qr-fora').hidden) desenharCelular(r); });
+  }, 30_000);
 }
 
 // Só estes campos saem do app: a lista é fechada de propósito (sem senha, cookie, login ou id interno).
+// Antes do primeiro dado o motor manda -1: vira vazio, não número.
+const numeroCelular = (n) => (typeof n === 'number' && n >= 0 ? n : null);
+
+// Regra do sniper como o celular a mostra. `resumo` é o mesmo texto que o PC mostra embaixo da regra.
+function regraParaCelular(r) {
+  return {
+    id: r.id,
+    tipo: r.tipo,
+    ativa: r.ativa !== false,
+    alvo: r.alvo || '',
+    itemId: r.itemId || 0,
+    modo: r.modo === 'media' ? 'media' : 'fixo',
+    desconto: r.desconto,
+    moedaMedia: r.moedaMedia,
+    minVendas: r.minVendas,
+    aprovar: r.aprovar === true,
+    maxGold: r.maxGold || 0,
+    maxGemas: r.maxGemas || 0,
+    maxQtd: r.maxQtd || 0,
+    compradas: r.compradas || 0,
+    resumo: descreverRegra(r)
+  };
+}
+
+// Captura da conta: a configuração (o que está ligado no PC) e o status que o jogo manda.
+function capturaParaCelular(i, e) {
+  const cfg = (config.captura && config.captura.contas[i]) || {};
+  const rep = { ...REPOSICAO_PADRAO(), ...(cfg.reposicao || {}) };
+  const cap = (e && e.captura) || {};
+  const st = cap.reposicao || {};
+  const bolas = cap.bolas || {};
+  const pocoes = cap.pocoes || {};
+  const lerRep = (r) => ({ ativo: r.ativo === true, id: r.id, abaixoDe: r.abaixoDe, qtd: r.qtd, limite: r.limite });
+  const statusRep = (s) => ({
+    aviso: s.aviso || null,
+    pendente: s.pendente === true,
+    compras: numeroCelular(s.compras) ?? 0,
+    ultimaQtd: s.ultima ? numeroCelular(s.ultima.qtd) : null,
+    ultimaEm: s.ultima ? numeroCelular(s.ultima.em) : null
+  });
+  return {
+    ativo: cfg.ativo === true,
+    modo: cfg.modo === 'sempre' ? 'sempre' : 'capturar',
+    ballId: cfg.ballId || 1,
+    reposicao: { bola: lerRep(rep.bola), pocao: lerRep(rep.pocao) },
+    pausa: cap.pausa || null,
+    lancadas: numeroCelular(cap.lancadas),
+    capturas: numeroCelular(cap.capturas),
+    perdidos: numeroCelular(cap.perdidos),
+    chance: numeroCelular(cap.chance),
+    ultimaEm: numeroCelular(cap.ultimaEm),
+    ultimaCaptura: cap.ultimaCaptura && cap.ultimaCaptura.nome
+      ? { nome: cap.ultimaCaptura.nome, shiny: cap.ultimaCaptura.shiny === true, bolas: numeroCelular(cap.ultimaCaptura.bolas) }
+      : null,
+    bolas: Object.keys(NOMES_BOLA).map(Number).map((id) => ({ id, nome: NOMES_BOLA[id], qtd: numeroCelular(bolas[id]) ?? 0 })),
+    lojaBolas: (cap.lojaBolas || []).map((b) => ({ id: b.id, nome: b.nome, preco: b.preco })),
+    lojaPocoes: POCOES_LOJA.map(([id, nome, preco]) => ({ id, nome, preco })),
+    estoqueRep: { bola: numeroCelular(bolas[rep.bola.id]), pocao: numeroCelular(pocoes[rep.pocao.id]) },
+    reposicaoStatus: { bola: statusRep(st.bola || {}), pocao: statusRep(st.pocao || {}) }
+  };
+}
+
+// Lives como o celular mostra: a conta que abre, a qualidade, as duas opções e os canais (no ar primeiro).
+function livesParaCelular() {
+  const auto = config.autoLive || {};
+  return {
+    contaLives: Number(config.contaLives) || 0,
+    qualidade: config.qualidadeLives || '160p30',
+    manterLives: config.manterLives !== false,
+    autoLive: { ativo: Boolean(auto.ativo), conta: Number(auto.conta) || 0 },
+    lista: Object.values(estadoLives)
+      .sort((a, b) => Number(b.aoVivo) - Number(a.aoVivo) || b.viewers - a.viewers)
+      .map((x) => ({ plataforma: x.plataforma, nome: x.nome, aoVivo: x.aoVivo === true, viewers: x.viewers || 0 }))
+  };
+}
+
 function montarSnapshotCelular() {
   const item = (x) => (x ? { nome: x.nome, qtd: x.qtd } : null);
-  // Antes do primeiro dado o motor manda -1: vira vazio, não número.
-  const valor = (n) => (typeof n === 'number' && n >= 0 ? n : null);
   return {
+    versao: versaoApp,
+    escala: config.escalaInterface ?? 'auto',
+    lives: livesParaCelular(),
+    sniper: { margemMs: config.sniper.margemMs, varreduraSeg: config.sniper.varreduraSeg },
     contas: contas.map((c, i) => {
       const e = c.estado || {};
       const t = e.tel || {};
@@ -2480,62 +2640,248 @@ function montarSnapshotCelular() {
         nome: config.contas[i].nome,
         online: on,
         nick: t.nick || '',
-        nivel: valor(t.nivel),
+        nivel: numeroCelular(t.nivel),
         hunt: t.hunt || '',
         sessaoMs: on && t.inicio ? Date.now() - t.inicio : null,
         pokemon: at.nome ? {
           nome: at.nome,
-          nivel: valor(at.nivel),
-          hp: valor(at.hp),
-          hpMax: valor(at.hpMax),
+          nivel: numeroCelular(at.nivel),
+          hp: numeroCelular(at.hp),
+          hpMax: numeroCelular(at.hpMax),
           shiny: Boolean(at.shiny),
           // O primeiro quadro do sprite que o Dashboard já mostra (data: da Pokédex ou do jogo).
           imagem: c.sprite && c.sprite.quadros.length ? c.sprite.quadros[0] : null
         } : null,
-        gold: valor(e.gold),
-        gemas: valor(e.gemas),
-        xpHora: valor(t.xpH),
-        goldHora: valor(t.goldH),
-        abates: valor(t.abates),
-        capturas: valor(t.capturas),
+        gold: numeroCelular(e.gold),
+        gemas: numeroCelular(e.gemas),
+        xpHora: numeroCelular(t.xpH),
+        goldHora: numeroCelular(t.goldH),
+        abates: numeroCelular(t.abates),
+        capturas: numeroCelular(t.capturas),
         pocao: item(stq.pocao),
         bola: item(stq.bola),
         drops: DROPS.map(([k, rotulo]) => ({ nome: rotulo, qtd: (t.drops && t.drops[k]) || 0 })),
         sniperLigado: Boolean(config.sniper.contas[i].ativo),
         capturaLigada: Boolean(config.captura && config.captura.contas[i] && config.captura.contas[i].ativo),
-        controle: c.controle || null
+        mudo: Boolean((config.mudo || [])[i]),
+        fila: numeroCelular(e.agendados),
+        gastos: { pocoes: numeroCelular((t.gastos || {}).pocoes), bolas: numeroCelular((t.gastos || {}).bolas) },
+        shinies: { vistos: numeroCelular(t.shiniesVistos), capturados: numeroCelular(t.shiniesCapturados) },
+        xpBonus: numeroCelular(t.buffs && t.buffs.xpTr),
+        ultimoSniper: c.ultimoSniper ? { nivel: c.ultimoSniper.nivel, msg: c.ultimoSniper.msg } : null,
+        controle: c.controle || null,
+        regras: (config.sniper.contas[i].regras || []).slice(0, 200).map(regraParaCelular),
+        captura: capturaParaCelular(i, e)
       };
     })
   };
 }
 
+// O catálogo do RMT vai ao painel uma vez por ligada (e de novo quando o catálogo muda).
+let catalogoNoCelular = false;
+function enviarCatalogoCelular() {
+  catalogoNoCelular = true;
+  window.central.enviarCatalogoCelular(catalogo.lista.map((it) => ({ id: it.id, nome: it.name, grupo: it.grupo })));
+}
+
+// Análise de hunts de uma conta, só o que a lista do celular usa (os números vêm crus; o painel arredonda).
+function huntsParaCelular(i) {
+  const d = hunts.dados[i];
+  if (!d) return null;
+  const lista = (x) => (x || []).map((y) => ({ tipo: y.tipo, mult: y.mult }));
+  return {
+    em: d.em,
+    nivelTreinador: numeroCelular(d.nivelTreinador),
+    fatorRitmo: d.ritmo && d.ritmo.fator > 0 ? d.ritmo.fator : null,
+    hunts: (d.hunts || []).map((h) => ({
+      slug: h.slug, nome: h.nome, regiao: regiaoDaHunt(h), nivel: h.nivel,
+      liberada: h.liberada === true, atual: h.atual === true,
+      xpTrH: h.xpTrH, xpPkH: h.xpPkH, goldH: h.goldH, killsH: h.killsH,
+      fracos: lista(h.fracos), resiste: lista(h.resiste)
+    }))
+  };
+}
+
+// Mercado para o celular: preços (com a hora da leitura), ofertas do radar que esperam aprovação (só ver),
+// o radar e as últimas compras. Compra e aprovação continuam só no PC.
+function mercadoParaCelular() {
+  const agora = Date.now();
+  const precos = linhasDoMercado('', false).map((l) => ({
+    id: l.id, nome: l.nome, cat: l.cat, qtd: l.qtd, eG: l.eG, eO: l.eO,
+    gold: l.gold, gema: l.gema, goldUlt: l.goldUlt, gemaUlt: l.gemaUlt,
+    mediaGema: l.mediaGema, vendasGema: l.vendasGema, em: l.em
+  }));
+  const ofertas = sugestoesPendentes.map((s) => ({
+    conta: config.contas[s.conta].nome, nome: `${s.qtd > 1 ? s.qtd + '× ' : ''}${s.nome}`, qtd: s.qtd,
+    preco: s.preco, moeda: s.moeda, pctMedia: s.pctMedia, media: s.media,
+    origem: s.regraId === 'radar' ? 'radar' : 'regra', recebidaEm: s.recebidaEm,
+    liberaEm: s.compravelEm ? Math.max(0, s.compravelEm - (agora - s.offset)) : 0
+  }));
+  const historico = compras.slice(0, 50).map((c) => ({
+    em: c.em, conta: (config.contas[c.conta] || {}).nome || '', nome: c.nome, qtd: c.qtd,
+    preco: c.preco, total: c.total, moeda: c.moeda, origem: c.origem, resultado: c.resultado
+  }));
+  return {
+    leituraEm: mercado.em, leituraConta: mercado.em ? config.contas[mercado.conta].nome : '',
+    limiteMs: limiteDesatualizado(), radar: radarAtual(), precos, ofertas, compras: historico
+  };
+}
+
+// Manda ao painel só o que mudou (análise de hunts e registro por conta, mercado). O mercado também sai a
+// cada 30 s, porque a hora da leitura envelhece sozinha.
+function enviarDetalhesCelular() {
+  for (const i of celularSujo.hunts) {
+    const d = huntsParaCelular(i);
+    if (d) window.central.enviarDetalheCelular({ tipo: 'hunts', conta: i, dados: d });
+  }
+  celularSujo.hunts.clear();
+  for (const i of celularSujo.registro) window.central.enviarDetalheCelular({ tipo: 'registro', conta: i, linhas: registroCelular[i] });
+  celularSujo.registro.clear();
+  if (celularSujo.mercado || Date.now() - mercadoEnviadoEm > 30_000) {
+    window.central.enviarDetalheCelular({ tipo: 'mercado', dados: mercadoParaCelular() });
+    celularSujo.mercado = false;
+    mercadoEnviadoEm = Date.now();
+  }
+}
+
 function enviarCelular() {
-  if (celularLigado) window.central.enviarSnapshotCelular(montarSnapshotCelular());
+  if (!celularLigado) return;
+  window.central.enviarSnapshotCelular(montarSnapshotCelular());
+  if (!catalogoNoCelular && catalogo.pronto) enviarCatalogoCelular();
+  enviarDetalhesCelular();
 }
 
 // Ações pedidas pelo celular. Cada uma espera a confirmação do motor da conta (pedido -> quem espera).
 const acoesJogoEmCurso = new Map();
 
-// Confere de novo o que a página pediu (a conta existe, está pronta e conectada) e executa:
-// sniper e captura pelas mesmas funções dos interruptores da interface; as do jogo, pelo motor da conta.
+// Ações de configuração (sniper e captura): salvam no PC pelas mesmas funções dos botões da central.
+const ACOES_DE_CONFIG = ['sniper', 'captura', 'sniperRegraSalvar', 'sniperRegraApagar', 'sniperRegraAtiva', 'sniperOpcoes', 'capturaConfig',
+  'liveAbrir', 'livesOpcoes', 'radarOpcoes', 'configOpcoes'];
+
+async function executarConfigCelular(i, acao, p) {
+  const falha = (motivo) => ({ ok: false, motivo });
+  const ok = { ok: true, motivo: null };
+  const regrasDaConta = () => config.sniper.contas[i].regras;
+  const achar = (id) => regrasDaConta().find((x) => x.id === id);
+  const salvarRegras = async (regras) => {
+    await salvarConta(i, { regras });
+    enviarSniper();
+    desenharRegras();
+    return ok;
+  };
+
+  if (acao === 'sniper') {
+    await salvarConta(i, { ativo: p.ligado === true });
+    enviarSniper();
+    atualizarSeletorConta();
+    return ok;
+  }
+  if (acao === 'captura') {
+    await mudarCaptura(i, { ativo: p.ligado === true });
+    return ok;
+  }
+  if (acao === 'sniperOpcoes') {
+    const v = Regras.validarOpcoesSniper(p);
+    if (v.erro) return falha(v.erro);
+    await salvar({ sniper: { ...config.sniper, ...v.valor } });
+    enviarSniper();
+    return ok;
+  }
+  if (acao === 'sniperRegraApagar') {
+    if (!achar(p.id)) return falha('Essa regra não existe mais.');
+    return salvarRegras(regrasDaConta().filter((x) => x.id !== p.id));
+  }
+  if (acao === 'sniperRegraAtiva') {
+    if (!achar(p.id)) return falha('Essa regra não existe mais.');
+    return salvarRegras(regrasDaConta().map((x) => (x.id === p.id ? { ...x, ativa: p.ativa } : x)));
+  }
+  if (acao === 'sniperRegraSalvar') {
+    // Confere de novo o que a página mandou, com as mesmas regras do formulário do PC.
+    const v = Regras.validarRegraDoCelular(p.regra);
+    if (v.erro) return falha(v.erro);
+    const r = v.valor;
+    const anterior = r.id !== undefined ? achar(r.id) : null;
+    if (r.id !== undefined && !anterior) return falha('Essa regra não existe mais.');
+    if (anterior && anterior.tipo !== r.tipo) return falha('O tipo da regra não pode mudar.');
+    const res = r.tipo === 'pokemon' ? Regras.regraDePokemonComTetos(anterior, r) : Regras.regraDeItem(r, anterior);
+    if (res.erro) return falha(res.erro);
+    const atuais = regrasDaConta();
+    const regras = anterior ? atuais.map((x) => (x.id === anterior.id ? res.valor : x)) : [...atuais, res.valor];
+    return salvarRegras(regras);
+  }
+  if (acao === 'liveAbrir') {
+    // Mesmos botões da aba Lives: uma live (a que está no ar), só Twitch, só Kick ou todas.
+    const plataforma = p.plataforma;
+    if (p.canal) {
+      const ch = estadoLives[`${plataforma}:${p.canal.toLowerCase()}`];
+      if (!ch || !ch.aoVivo) return falha('Essa live não está no ar.');
+      abrirLive(ch, Number(config.contaLives) || 0);
+      return ok;
+    }
+    const noAr = Object.values(estadoLives).some((x) => x.aoVivo && (plataforma === 'ambas' || x.plataforma === plataforma));
+    if (!noAr) return falha(plataforma === 'ambas' ? 'Nenhuma live no ar agora.' : `Nenhuma live da ${plataforma === 'kick' ? 'Kick' : 'Twitch'} no ar agora.`);
+    abrirAoVivo(plataforma === 'ambas' ? undefined : plataforma);
+    return ok;
+  }
+  if (acao === 'livesOpcoes') {
+    const v = Regras.validarLivesDoCelular(p.parcial);
+    if (v.erro) return falha(v.erro);
+    const parcial = { ...v.valor };
+    if (parcial.autoLive) parcial.autoLive = { ...(config.autoLive || { ativo: false, conta: 0 }), ...parcial.autoLive };
+    await salvar(parcial);
+    desenharOpcoesLives();
+    desenharLives();
+    return ok;
+  }
+  if (acao === 'radarOpcoes') {
+    const v = Regras.validarRadarDoCelular(p.parcial);
+    if (v.erro) return falha(v.erro);
+    await salvarRadar(v.valor);
+    return ok;
+  }
+  if (acao === 'configOpcoes') {
+    const v = Regras.validarConfigDoCelular(p.parcial);
+    if (v.erro) return falha(v.erro);
+    if ('escalaInterface' in v.valor) {
+      await salvar({ escalaInterface: v.valor.escalaInterface });
+      $('#escala-interface').value = String(v.valor.escalaInterface);
+    }
+    if (v.valor.mudo) await definirMudo(v.valor.mudo.conta, v.valor.mudo.valor);
+    return ok;
+  }
+  if (acao === 'capturaConfig') {
+    const e = contas[i].estado || {};
+    const lojaBolas = (e.captura && e.captura.lojaBolas) || [];
+    const v = Regras.validarParcialCaptura(p.parcial, lojaBolas);
+    if (v.erro) return falha(v.erro);
+    const parcial = { ...v.valor };
+    // A reposição chega por tipo (bola e poção): junta com o que já estava, como o formulário do PC faz.
+    if (parcial.reposicao) {
+      const rep = config.captura.contas[i].reposicao || REPOSICAO_PADRAO();
+      parcial.reposicao = { ...rep, ...Object.fromEntries(Object.entries(parcial.reposicao).map(([tipo, s]) => [tipo, { ...rep[tipo], ...s }])) };
+    }
+    await mudarCaptura(i, parcial);
+    return ok;
+  }
+  return falha('Ação desconhecida.');
+}
+
+// Confere de novo o que a página pediu (a conta existe) e executa: sniper e captura pelas mesmas funções dos
+// interruptores e formulários da interface; as do jogo, pelo motor da conta.
 async function executarAcaoCelular(a) {
   const falha = (motivo) => ({ ok: false, motivo });
   const c = contas[a.conta];
   const p = a.params || {};
   if (!c) return falha('Essa conta não existe.');
+  if (ACOES_DE_CONFIG.includes(a.acao)) return executarConfigCelular(a.conta, a.acao, p);
   if (!c.pronta) return falha('A conta ainda está carregando.');
   if (!c.estado || !c.estado.conectado) return falha('Conta sem conexão com o jogo.');
+  // Análise de hunts: a mesma pedida do botão Atualizar da aba Hunts. O resultado chega depois, pelo motor.
+  if (a.acao === 'huntsAtualizar') {
+    c.webview.send('central', { tipo: 'analisarHunts' });
+    return { ok: true, motivo: null };
+  }
 
-  if (a.acao === 'sniper') {
-    await salvarConta(a.conta, { ativo: p.ligado === true });
-    enviarSniper();
-    atualizarSeletorConta();
-    return { ok: true, motivo: null };
-  }
-  if (a.acao === 'captura') {
-    await mudarCaptura(a.conta, { ativo: p.ligado === true });
-    return { ok: true, motivo: null };
-  }
   // Ações do jogo: o motor confere com o estado da conta e responde por postar('acaoResultado').
   return new Promise((resolve) => {
     const timer = setTimeout(() => {
@@ -2554,24 +2900,19 @@ async function executarAcaoCelular(a) {
   montarContas();
   desenharSom();
   montarSniper();
-  $('#lv-qualidade').value = config.qualidadeLives || '160p30';
   $('#lv-conta').replaceChildren(...config.contas.map((c, i) => el('option', { value: String(i) }, c.nome)));
-  $('#lv-conta').value = String(config.contaLives || 0);
   $('#lv-conta').addEventListener('change', async (e) => { await salvar({ contaLives: Number(e.target.value) }); desenharLives(); });
   $('#fechar-lives').addEventListener('click', () => {
     $('#players').replaceChildren(el('p', { class: 'vazio' }, 'Nenhuma live aberta.'));
     verificarLoginTwitch();
   });
   $('#lv-qualidade').addEventListener('change', (e) => salvar({ qualidadeLives: e.target.value }));
-  const auto = config.autoLive || { ativo: false, conta: 0 };
-  $('#lv-auto').checked = Boolean(auto.ativo);
   $('#lv-auto-conta').replaceChildren(...config.contas.map((c, i) => el('option', { value: String(i) }, c.nome)));
-  $('#lv-auto-conta').value = String(auto.conta || 0);
   const salvarAuto = () => salvar({ autoLive: { ativo: $('#lv-auto').checked, conta: Number($('#lv-auto-conta').value) } });
   $('#lv-auto').addEventListener('change', salvarAuto);
   $('#lv-auto-conta').addEventListener('change', salvarAuto);
-  $('#lv-manter').checked = config.manterLives !== false;
   $('#lv-manter').addEventListener('change', (e) => salvar({ manterLives: e.target.checked }));
+  desenharOpcoesLives();
   setInterval(manterLives, INTERVALO_MANTER_LIVES);
   desenharLives();
   atualizarResumo();
@@ -2626,7 +2967,7 @@ async function executarAcaoCelular(a) {
   window.central.onAtualizacao(mostrarAtualizacao);
   $('#atualizacao').addEventListener('click', () => window.central.instalarAtualizacao());
   $('#checar-atualizacao').addEventListener('click', async () => mostrarAtualizacao(await window.central.checarAtualizacao()));
-  window.central.infoAtualizacao().then((a) => { $('#versao-app').textContent = a.versao; if (a.estado !== 'parado') mostrarAtualizacao(a); });
+  window.central.infoAtualizacao().then((a) => { versaoApp = a.versao || ''; $('#versao-app').textContent = a.versao; if (a.estado !== 'parado') mostrarAtualizacao(a); });
   // Contador discreto: quantas vezes o instalador foi baixado nas Releases do GitHub (sem rastrear ninguém).
   window.central.totalDownloads().then((d) => {
     if (!d || !(d.total > 0)) return;

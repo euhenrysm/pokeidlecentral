@@ -312,9 +312,9 @@
           <div class="celular-cabeca">
             <div>
               <h3>Painel no celular</h3>
-              <p class="nota">Mostra os números das suas contas no celular, numa página só de leitura.</p>
-              <p class="nota aviso-celular">Funciona só na mesma rede Wi-Fi. Quem tiver o QR vê os números das suas contas (não vê senhas nem logins). O Windows pode pedir para liberar no firewall.</p>
-              <p class="nota">Ao abrir o app com o painel ligado, um código novo é gerado: o QR antigo deixa de valer.</p>
+              <p class="nota">Veja e controle as suas contas pelo celular: sniper, captura, hunts, time, mochila, mercado, lives e registro.</p>
+              <p class="nota aviso-celular">O QR code é como uma senha: quem tiver ele controla as suas contas (mas não vê senhas nem logins). Não mande para ninguém. O Windows pode pedir para liberar no firewall.</p>
+              <p class="nota">O código continua o mesmo ao fechar e abrir o app (o atalho do celular segue valendo). "Gerar novo código" derruba quem estiver usando o antigo.</p>
             </div>
             <button id="celular-chave" class="chave" role="switch" aria-checked="false" title="Liga o painel no celular"></button>
           </div>
@@ -326,8 +326,17 @@
                 <small id="celular-status" class="nota" role="status"></small>
               </div>
             </div>
-            <img id="celular-qr" class="celular-qr" alt="QR code do painel no celular" hidden>
+            <figure class="celular-figura">
+              <img id="celular-qr" class="celular-qr" alt="QR code do painel no celular, na mesma rede Wi-Fi" hidden>
+              <figcaption id="celular-qr-legenda" hidden>Em casa (mesmo Wi-Fi)</figcaption>
+            </figure>
+            <figure class="celular-figura">
+              <img id="celular-qr-fora" class="celular-qr" alt="QR code do painel no celular, fora de casa pelo Tailscale" hidden>
+              <figcaption id="celular-qr-fora-legenda" hidden>Fora de casa (Tailscale)</figcaption>
+            </figure>
           </div>
+          <p id="celular-fora-dica" class="nota" hidden>Para usar fora de casa: instale o <b>Tailscale</b> (grátis) neste PC e no celular e entre com a mesma conta nos dois. O QR "Fora de casa" aparece aqui sozinho.</p>
+          <p id="celular-fora-endereco" class="nota" hidden></p>
         </div>
         <h2>Contas e logins</h2>
         <p class="nota">As senhas são criptografadas pelo sistema e nunca aparecem de volta aqui. "Entrar" abre a página
@@ -378,6 +387,7 @@
   </div>
 
   <script src="novidades.js"></script>
+  <script src="regras.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
