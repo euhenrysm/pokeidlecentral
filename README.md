@@ -27,7 +27,7 @@ Para Windows e Linux. Grátis e de código aberto.
 | **Hunts** | Todas as hunts por XP, ouro e abates, com vantagem de tipo, risco e caminho de up para o seu pokémon, com o catálogo de espécies do próprio jogo. |
 | **Mercado** | Preços dos itens raros com a hora de cada leitura, radar de ofertas abaixo da média, histórico das suas compras e as vendas das últimas 24 h. |
 | **Lives** | Quem está ao vivo, abertura automática, "Abrir só Twitch/Kick" e conferência periódica para o player não travar. |
-| **Painel no celular** | Os números das contas no celular, pela rede Wi-Fi de casa, com QR code e código de acesso. |
+| **Painel no celular** | Os números das contas e o controle de cada conta (hunt, time, mochila, Centro, sniper e captura) no celular, pela rede Wi-Fi de casa, com QR code e código de acesso. |
 | **Config** | Logins por conta (PokéIdle, Twitch e Kick), login pelo navegador para contas Google, escala da interface e som. |
 
 ## Instalação
@@ -132,12 +132,24 @@ Os nomes de alguns campos do jogo ainda estão sendo calibrados: o app salva os 
 
 ## Painel no celular
 
-Na aba **Config**, ligue o **Painel no celular** para ver os números das contas no celular: pokémon em campo, ouro, XP/h, abates, capturas e drops raros. É uma página só de leitura, sem botões que mexam no jogo.
+Na aba **Config**, ligue o **Painel no celular** para ver os números das contas no celular: pokémon em campo, ouro, XP/h, abates, capturas e drops raros. Cada conta também pode ser controlada pelo celular (veja abaixo).
 
 - **Desligado por padrão.** Ligado, a Config mostra o endereço (`http://IP-do-computador:47740`) e um QR code. Aponte a câmera do celular para o QR: o código de acesso vai dentro dele, então não precisa digitar nada.
 - **Só na mesma rede Wi-Fi**, com o app aberto. A porta é a 47740 (se estiver ocupada, a 47741 até a 47745). O Windows pode pedir para liberar o app no firewall: aceite para redes privadas.
-- **Quem tiver o QR vê os números das suas contas**, mas não vê senhas nem logins. Não divulgue o QR. Para trocar o acesso, clique em **Gerar novo código**: o QR antigo deixa de valer na hora. Ao abrir o app com o painel ligado, um código novo também é gerado.
+- **O QR é como uma senha.** Quem tiver o QR vê os números das suas contas e pode controlá-las (trocar hunt, time, usar itens, ir ao Centro, ligar sniper e captura). Não vê senhas nem logins. Não divulgue o QR. Para trocar o acesso, clique em **Gerar novo código**: o QR antigo deixa de valer na hora e derruba quem estiver usando a página. Ao abrir o app com o painel ligado, um código novo também é gerado.
 - Os números atualizam a cada 3 s. Se o app fechar ou o painel for desligado, a página mostra "Desconectado".
+
+### Controlar pelo celular
+
+Na página do celular, cada conta tem o botão **Controlar**, que abre a conta com estas abas:
+
+- **Hunt**: as hunts liberadas pelo nível do treinador, com busca. A atual vem marcada. Toque numa hunt e confirme para trocar.
+- **Time**: o time (com **Ativar** para o pokémon ativo) e o depósito (com **Pôr no time**, pelos de maior nível).
+- **Mochila**: itens com busca. **Usar** e **Descartar** (com a quantidade que você escolher) pedem confirmação. Bolas aparecem só com a quantidade; elas não são descartadas pelo celular.
+- **Centro**: **Ir ao Centro** e **Curar**.
+- **Automação**: liga e desliga o **Sniper** e a **Captura** daquela conta, pelos mesmos interruptores da central.
+
+Cada ação mostra na hora se a central confirmou ou por que recusou (conta sem conexão, hunt bloqueada, time cheio, item sem quantidade). Não há compra nem venda no mercado pelo celular. As ações valem para a conta que está logada no jogo, então quem acompanha o PC vê a mudança na hora.
 
 ## Contas (aba Jogo)
 

@@ -104,6 +104,7 @@ function motor() {
     if (typeof fonteSaldo.orbs === 'number') S.gemas = fonteSaldo.orbs;
     if (typeof fonteSaldo.diamonds === 'number') S.diamantes = fonteSaldo.diamonds;
     if (est) lerPerfil(est);
+    if (est) estadoCru = { ...estadoCru, ...est };
     if (est && t !== 'welcome') mesclarEstado(est);
     anotarCaidos(p.mobs || (p.campo && p.campo.mobs));
     if (t === 'batalha' && Array.isArray(p.ev)) for (const e of p.ev) if (e) aoEventoBatalha(e);
@@ -418,6 +419,8 @@ function motor() {
   let mesclador = null;
   let filaEstado = [];
   let estadoCompleto = null;
+  // Última leitura crua do estado: a aba Controle usa só se o estado mesclado ainda não existir.
+  let estadoCru = {};
   let ritmoHunt = null;
   import('/shared/estado-delta.mjs').then((m) => {
     mesclador = m.criarMescladorDeEstado();
@@ -478,6 +481,15 @@ function motor() {
     if (h.area === 'kanto') return ger === 'johto' ? 'johto' : 'kanto';
     return ger && ger !== 'kanto' && ger !== 'johto' ? ger : 'hoenn';
   }
+
+  // As regiões do mapa do jogo, na ordem em que aparecem, com o nível que o treinador precisa para entrar.
+  const REGIOES = [
+    { id: 'kanto', rotulo: 'Kanto', nivel: 1 }, { id: 'outland', rotulo: 'Outland', nivel: 150 },
+    { id: 'johto', rotulo: 'Johto', nivel: 200 }, { id: 'hoenn', rotulo: 'Hoenn', nivel: 500 },
+    { id: 'sinnoh', rotulo: 'Sinnoh', nivel: 1000 }, { id: 'unova', rotulo: 'Unova', nivel: 5000 },
+    { id: 'kalos', rotulo: 'Kalos', nivel: 10000 }, { id: 'alola', rotulo: 'Alola', nivel: 25000 },
+    { id: 'galar', rotulo: 'Galar', nivel: 40000 }, { id: 'paldea', rotulo: 'Paldea', nivel: 75000 }
+  ];
 
   // Degrau da Outland que vale para a conta (o escolhido, podado pelo nível), como na ficha do jogo.
   function degrauOutland(tiers, eu) {
@@ -1298,6 +1310,138 @@ function motor() {
     status();
   }
 
+  // ---------------------------------------------------------- Controle pelo celular (aba Controle do painel)
+  // A conta manda à central uma lista pronta (hunts, time, depósito e mochila), no máximo a cada 5 s e só
+  // quando ela muda. O conteúdo não tem horário nem contador, para dar para comparar com a última enviada.
+  const euDaConta = () => estadoCompleto || (estadoCru.eu || estadoCru.treinador || estadoCru);
+  // Slots do time que o jogo aceita. O estado não traz o limite nem a base dos números: confirmar no jogo.
+  const SLOTS_TIME = [1, 2, 3, 4, 5, 6];
+  const nivelDoTreinador = () => Number(euDaConta().level ?? perfil.nivel) || 0;
+  // Liberada quando o nível da hunt e o da região cabem no treinador (sem nível lido, libera tudo).
+  const nivelDaRegiao = (id) => (REGIOES.find((r) => r.id === id) || { nivel: 0 }).nivel;
+  const huntLiberada = (h) => {
+    const n = nivelDoTreinador();
+    if (n === 0) return true;
+    return (Number(h.nivel ?? h.level) || 0) <= n && nivelDaRegiao(regiaoDaHunt(h)) <= n;
+  };
+  const pokemonsDaConta = () => (Array.isArray(euDaConta().pokemons) ? euDaConta().pokemons : []).filter((x) => x && x.id != null);
+  const ativoDaConta = () => euDaConta().activeId ?? ativo.id;
+  // Pokémon no time tem slot; sem slot, está no depósito.
+  const naEquipe = (x) => primeiroNumero(x.slot) != null;
+  const nomeDoPokemon = (x) => x.apelido || x.nome || x.especie || x.speciesName || x.name || 'Pokémon';
+  const nomeDoItemControle = (id) => S.itens[id] || NOMES_POCAO[id] || (POCOES_LOJA[id] && POCOES_LOJA[id].nome) || `Item ${id}`;
+  const nomeDaBola = (id) => BOLAS[id] || (lojaBolas.find((b) => b.id === Number(id)) || {}).nome || `Bola ${id}`;
+  const quantidadeDe = (tipo, id) => quantidades(tipo === 'ball' ? euDaConta().balls : euDaConta().items)[id] || 0;
+  const slotLivre = () => {
+    const usados = new Set(pokemonsDaConta().filter(naEquipe).map((x) => primeiroNumero(x.slot)));
+    return SLOTS_TIME.find((s) => !usados.has(s)) ?? null;
+  };
+
+  function montarControle() {
+    const eu = euDaConta();
+    const n = nivelDoTreinador();
+    // Por região, na ordem do mapa do jogo, e dentro da região do nível mais baixo para o mais alto.
+    const ordemRegiao = (id) => { const i = REGIOES.findIndex((r) => r.id === id); return i < 0 ? REGIOES.length : i; };
+    const hunts = [...huntsPorSlug.values()]
+      .filter((h) => h && h.slug && h.slug !== 'centro_pokemon')
+      .map((h) => ({
+        slug: String(h.slug), nome: String(h.nome || h.name || h.slug), nivel: Number(h.nivel ?? h.level) || 0,
+        regiao: regiaoDaHunt(h), liberada: huntLiberada(h), atual: h.slug === perfil.huntSlug
+      }))
+      .sort((a, b) => ordemRegiao(a.regiao) - ordemRegiao(b.regiao) || a.nivel - b.nivel);
+    // Região trancada quando o treinador ainda não chegou ao nível dela (sem nível lido, nada é trancado).
+    const regioes = REGIOES.map((r) => ({ id: r.id, rotulo: r.rotulo, nivel: r.nivel, trancada: n > 0 && n < r.nivel }));
+    const ativoId = ativoDaConta();
+    const pokemons = pokemonsDaConta().map((x) => ({
+      id: Number(x.id), nome: nomeDoPokemon(x),
+      nivel: primeiroNumero(x.level, x.nivel, x.lvl) ?? null,
+      hp: primeiroNumero(x.hp, x.hpAtual, x.vida) ?? null,
+      hpMax: primeiroNumero(x.maxHp, x.hpMax, x.vidaMax, x.hpMaximo) ?? null,
+      shiny: Boolean(x.shiny || x.isShiny), ativo: Number(x.id) === Number(ativoId), slot: primeiroNumero(x.slot) ?? null
+    }));
+    const equipe = pokemons.filter((x) => x.slot != null).sort((a, b) => a.slot - b.slot);
+    const deposito = pokemons.filter((x) => x.slot == null)
+      .sort((a, b) => (b.nivel || 0) - (a.nivel || 0))
+      .slice(0, 30)
+      .map(({ id, nome, nivel }) => ({ id, nome, nivel }));
+    const itens = Object.entries(quantidades(eu.items)).filter(([, q]) => q > 0)
+      .map(([id, q]) => ({ id: Number(id), nome: nomeDoItemControle(Number(id)), qtd: q, tipo: 'item' }));
+    const bolas = Object.entries(quantidades(eu.balls)).filter(([, q]) => q > 0)
+      .map(([id, q]) => ({ id: Number(id), nome: nomeDaBola(Number(id)), qtd: q, tipo: 'ball' }));
+    return { hunts, regioes, equipe, deposito, mochila: [...itens, ...bolas] };
+  }
+
+  let controleEnviado = null;
+  let controleEm = 0;
+  function enviarControle() {
+    const agora = Date.now();
+    if (agora - controleEm < 5000) return;
+    const dados = montarControle();
+    const chave = JSON.stringify(dados);
+    if (chave === controleEnviado) return;
+    controleEnviado = chave;
+    controleEm = agora;
+    postar('controle', dados);
+  }
+  setInterval(enviarControle, 1000);
+
+  // Ações que o celular pede. A central manda { tipo: 'acaoJogo', acao, params, pedido }. Antes de mandar a
+  // mensagem ao jogo, confere com o estado da conta: hunt liberada, pokémon na equipe ou no depósito, slot
+  // livre e item com quantidade na mochila. Devolve { ok, motivo }.
+  function acaoDoCelular(c) {
+    const p = c.params || {};
+    const falha = (motivo) => ({ ok: false, motivo });
+    const mandar = (msg, texto) => {
+      if (!enviar(msg)) return falha('Conta sem conexão com o jogo.');
+      log('info', `Celular: ${texto}.`);
+      return { ok: true, motivo: null };
+    };
+    const pokemon = () => pokemonsDaConta().find((x) => Number(x.id) === Number(p.pokemonId));
+    switch (c.acao) {
+      case 'hunt': {
+        const h = huntsPorSlug.get(String(p.slug));
+        if (!h || h.slug === 'centro_pokemon') return falha('Essa hunt não existe nesta conta.');
+        if (!huntLiberada(h)) return falha('Hunt bloqueada: o treinador ainda não chegou ao nível dela ou ao da região.');
+        if (h.slug === perfil.huntSlug) return falha('A conta já está nesta hunt.');
+        return mandar({ t: 'hunt.select', slug: h.slug }, `trocou para a hunt ${h.nome || h.name || h.slug}`);
+      }
+      case 'ativo': {
+        const pk = pokemon();
+        if (!pk) return falha('Esse pokémon não está nesta conta.');
+        if (!naEquipe(pk)) return falha('Esse pokémon está no depósito: ponha-o no time antes.');
+        if (Number(ativoDaConta()) === Number(pk.id)) return falha('Ele já é o pokémon ativo.');
+        return mandar({ t: 'team.active', pokemonId: Number(pk.id) }, `${nomeDoPokemon(pk)} virou o pokémon ativo`);
+      }
+      case 'paraTime': {
+        const pk = pokemon();
+        if (!pk) return falha('Esse pokémon não está nesta conta.');
+        if (naEquipe(pk)) return falha('Esse pokémon já está no time.');
+        const slot = slotLivre();
+        if (slot == null) return falha('O time está cheio: tire um pokémon antes.');
+        return mandar({ t: 'team.move', pokemonId: Number(pk.id), slot }, `${nomeDoPokemon(pk)} foi para o time`);
+      }
+      case 'usarItem': {
+        const id = Number(p.itemId);
+        if (!(quantidadeDe('item', id) > 0)) return falha('Esse item não está na mochila.');
+        return mandar({ t: 'item.use', itemId: id }, `usou ${nomeDoItemControle(id)}`);
+      }
+      case 'descartar': {
+        // Bola: o valor do campo "tipo" no jogo ainda não foi confirmado, então só itens são descartados.
+        if (p.tipo !== 'item') return falha(p.tipo === 'ball' ? 'Descartar bola ainda não está liberado pelo celular.' : 'Tipo de item inválido.');
+        const id = Number(p.id);
+        const qtd = Number(p.qtd);
+        if (!(qtd > 0) || !(quantidadeDe('item', id) >= qtd)) return falha('A mochila não tem essa quantidade.');
+        return mandar({ t: 'bolsa.descartar', tipo: 'item', id, qtd }, `descartou ${qtd}× ${nomeDoItemControle(id)}`);
+      }
+      case 'centro':
+        return mandar({ t: 'centro.ir' }, 'foi ao Centro Pokémon');
+      case 'curar':
+        return mandar({ t: 'centro.curar' }, 'curou os pokémons no Centro Pokémon');
+      default:
+        return falha('Ação desconhecida.');
+    }
+  }
+
   // ---------------------------------------------------------- Status e comandos da central
   function status() {
     let agendados = 0;
@@ -1416,6 +1560,10 @@ function motor() {
       pedirHistoricoGlobal();
     } else if (c.tipo === 'pedirLives') {
       postar('lives', { twitch: S.twitch, kick: S.kick });
+    } else if (c.tipo === 'acaoJogo') {
+      let r;
+      try { r = acaoDoCelular(c); } catch (err) { r = { ok: false, motivo: 'Falha ao executar: ' + err.message }; }
+      postar('acaoResultado', { pedido: c.pedido, ok: r.ok, motivo: r.motivo });
     }
   });
 }

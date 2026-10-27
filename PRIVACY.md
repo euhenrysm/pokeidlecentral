@@ -29,6 +29,7 @@ O app só faz conexões com estes serviços:
 | `www.twitch.tv` e `kick.com` | páginas das lives e das telas de login e vínculo de cada conta |
 | `raw.githubusercontent.com` (PokeAPI) | imagens da Pokédex, para o Dashboard |
 | GitHub Releases | procurar e baixar atualizações do próprio app |
+| `api.github.com` | ler o número total de downloads das Releases, mostrado na aba Config (a cada 6 h; não envia nada sobre você) |
 | `fonts.googleapis.com` e `fonts.gstatic.com` | fontes da interface, carregadas do Google |
 
 Nenhum desses serviços recebe a sua configuração, senhas, cookies ou logs do app, além do que o próprio site já recebe quando você entra nele, como faria num navegador.
@@ -37,9 +38,11 @@ Conexões locais: a extensão do navegador conversa com o app pelo próprio comp
 
 ## Painel no celular
 
-Opcional e desligado por padrão (aba **Config**). Ligado, o app abre uma página só de leitura na rede Wi-Fi local, com os números das contas: nomes, nível, ouro e gemas, XP/h, abates, capturas, pokémon em campo, estoque de poção e bola e drops raros. Não mostra nem envia senhas, cookies, logins nem ids internos.
+Opcional e desligado por padrão (aba **Config**). Ligado, o app abre uma página na rede Wi-Fi local, com os números das contas: nomes, nível, ouro e gemas, XP/h, abates, capturas, pokémon em campo, estoque de poção e bola, drops raros, e a lista de hunts, time, depósito e mochila de cada conta. Não mostra nem envia senhas, cookies, logins nem ids internos.
 
-O acesso depende de um código aleatório que muda a cada ligada e em "Gerar novo código". Ele fica só na memória do app e dentro do QR, e não é gravado em disco. Nada disso vai para a internet: a página só responde a aparelhos da sua rede local.
+O painel também **controla** as contas: troca de hunt, ativa pokémon, põe pokémon no time, usa e descarta itens, vai ao Centro, cura e liga ou desliga sniper e captura. Por isso o QR (ou o código dentro dele) deve ser tratado como uma senha: quem o tiver pode mexer nas suas contas enquanto o painel estiver ligado. Não compartilhe o QR. Não há compra nem venda no mercado pelo celular.
+
+O acesso depende de um código aleatório que muda a cada ligada e em "Gerar novo código" (o código antigo deixa de valer na hora). Ele fica só na memória do app e dentro do QR, e não é gravado em disco. Nada disso vai para a internet: a página só responde a aparelhos da sua rede local.
 
 ## Senhas
 

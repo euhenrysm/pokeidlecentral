@@ -170,6 +170,13 @@ function aoMotor(i, tipo, dados) {
       salvar({ captura: config.captura });
       desenharCaptura();
     }
+  } else if (tipo === 'controle') {
+    // Lista da aba Controle do celular (hunts, time, depósito e mochila): só guarda, o snapshot leva.
+    conta.controle = dados;
+  } else if (tipo === 'acaoResultado') {
+    // Resposta do motor a uma ação pedida pelo celular.
+    const resolver = acoesJogoEmCurso.get(dados.pedido);
+    if (resolver) { acoesJogoEmCurso.delete(dados.pedido); resolver(dados); }
   } else if (tipo === 'sprite') {
     receberSprite(conta, dados);
   } else if (tipo === 'itensNossos') {
@@ -2443,6 +2450,11 @@ async function mudarCelular(ligar) {
 
 function montarPainelCelular() {
   $('#celular-chave').addEventListener('click', () => mudarCelular(!celularLigado));
+  window.central.onAcaoCelular(async (a) => {
+    let r;
+    try { r = await executarAcaoCelular(a); } catch { r = { ok: false, motivo: 'Falha ao executar a ação.' }; }
+    window.central.responderAcaoCelular({ pedido: a.pedido, ...r });
+  });
   $('#celular-novo').addEventListener('click', async () => {
     const r = await window.central.novoCodigoCelular();
     desenharCelular(r);
@@ -2490,7 +2502,8 @@ function montarSnapshotCelular() {
         bola: item(stq.bola),
         drops: DROPS.map(([k, rotulo]) => ({ nome: rotulo, qtd: (t.drops && t.drops[k]) || 0 })),
         sniperLigado: Boolean(config.sniper.contas[i].ativo),
-        capturaLigada: Boolean(config.captura && config.captura.contas[i] && config.captura.contas[i].ativo)
+        capturaLigada: Boolean(config.captura && config.captura.contas[i] && config.captura.contas[i].ativo),
+        controle: c.controle || null
       };
     })
   };
@@ -2498,6 +2511,40 @@ function montarSnapshotCelular() {
 
 function enviarCelular() {
   if (celularLigado) window.central.enviarSnapshotCelular(montarSnapshotCelular());
+}
+
+// Ações pedidas pelo celular. Cada uma espera a confirmação do motor da conta (pedido -> quem espera).
+const acoesJogoEmCurso = new Map();
+
+// Confere de novo o que a página pediu (a conta existe, está pronta e conectada) e executa:
+// sniper e captura pelas mesmas funções dos interruptores da interface; as do jogo, pelo motor da conta.
+async function executarAcaoCelular(a) {
+  const falha = (motivo) => ({ ok: false, motivo });
+  const c = contas[a.conta];
+  const p = a.params || {};
+  if (!c) return falha('Essa conta não existe.');
+  if (!c.pronta) return falha('A conta ainda está carregando.');
+  if (!c.estado || !c.estado.conectado) return falha('Conta sem conexão com o jogo.');
+
+  if (a.acao === 'sniper') {
+    await salvarConta(a.conta, { ativo: p.ligado === true });
+    enviarSniper();
+    atualizarSeletorConta();
+    return { ok: true, motivo: null };
+  }
+  if (a.acao === 'captura') {
+    await mudarCaptura(a.conta, { ativo: p.ligado === true });
+    return { ok: true, motivo: null };
+  }
+  // Ações do jogo: o motor confere com o estado da conta e responde por postar('acaoResultado').
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      acoesJogoEmCurso.delete(a.pedido);
+      resolve(falha('A conta não respondeu a tempo.'));
+    }, 4000);
+    acoesJogoEmCurso.set(a.pedido, (r) => { clearTimeout(timer); resolve({ ok: r.ok === true, motivo: r.motivo || null }); });
+    c.webview.send('central', { tipo: 'acaoJogo', acao: a.acao, params: p, pedido: a.pedido });
+  });
 }
 
 // ------------------------------------------------------------------ Início
@@ -2580,5 +2627,11 @@ function enviarCelular() {
   $('#atualizacao').addEventListener('click', () => window.central.instalarAtualizacao());
   $('#checar-atualizacao').addEventListener('click', async () => mostrarAtualizacao(await window.central.checarAtualizacao()));
   window.central.infoAtualizacao().then((a) => { $('#versao-app').textContent = a.versao; if (a.estado !== 'parado') mostrarAtualizacao(a); });
+  // Contador discreto: quantas vezes o instalador foi baixado nas Releases do GitHub (sem rastrear ninguém).
+  window.central.totalDownloads().then((d) => {
+    if (!d || !(d.total > 0)) return;
+    $('#downloads-app').textContent = `${fmt(d.total)} downloads no GitHub`;
+    $('#downloads-app').hidden = false;
+  }).catch(() => {});
   $('.topo').addEventListener('dblclick', (e) => { if (e.target.closest('button, select, input')) return; window.central.janela('maximizar'); });
 })();

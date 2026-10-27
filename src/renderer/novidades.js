@@ -2,6 +2,14 @@
 // viu (uma vez por versão). Para a próxima atualização: acrescente a versão no topo da lista.
 window.NOVIDADES = [
   {
+    versao: '0.3.2',
+    itens: [
+      ['Controle pelo celular', 'No painel do celular, o botão Controlar em cada conta: trocar a hunt, ativar pokémon ou pôr no time, usar e descartar itens da mochila, ir ao Centro e curar, e ligar ou desligar o sniper e a captura. Tudo acontece na conta, no PC, na hora. Compra e venda no mercado ficam fora do celular.'],
+      ['Hunts por região', 'No celular, todas as hunts aparecem separadas por região, como no mapa do jogo, com cadeado nas que ainda estão bloqueadas.'],
+      ['Downloads', 'A Config mostra, discreto ao lado da versão, quantas vezes o PokeIdle Central foi baixado no GitHub.']
+    ]
+  },
+  {
     versao: '0.3.0',
     itens: [
       ['Grátis e de código aberto', 'O PokeIdle Central agora é grátis e de código aberto (GPL-3.0): sem ativação, com o código no GitHub. Também roda no Linux.'],

@@ -347,6 +347,19 @@ ipcMain.handle('debug:lives', (_e, dados) => {
   fs.writeFileSync(path.join(app.getPath('userData'), 'lives-debug.json'), JSON.stringify(dados, null, 2));
 });
 ipcMain.handle('navegador:listar', () => navegadores.listar());
+// Total de downloads dos instaladores nas Releases do GitHub (público, sem identificar ninguém). Cache de 6 h.
+let cacheDownloads = null;
+ipcMain.handle('downloads:total', async () => {
+  if (cacheDownloads && Date.now() - cacheDownloads.em < 6 * 3_600_000) return cacheDownloads;
+  try {
+    const res = await net.fetch('https://api.github.com/repos/euhenrysm/pokeidlecentral/releases?per_page=100', { headers: { Accept: 'application/vnd.github+json' } });
+    if (!res.ok) return cacheDownloads;
+    let total = 0;
+    for (const r of await res.json()) for (const a of r.assets || []) if (/\.(exe|AppImage|deb)$/i.test(a.name)) total += Number(a.download_count) || 0;
+    cacheDownloads = { total, em: Date.now() };
+  } catch { /* sem internet: fica sem o número */ }
+  return cacheDownloads;
+});
 ipcMain.handle('navegador:entrar', (_e, i, servico) => {
   try { sessaoNavegador.pedir(i, servico, (config.navegadorLogin || [])[i]); return { ok: true }; }
   catch (err) { return { ok: false, motivo: err.message }; }
@@ -560,6 +573,27 @@ ipcMain.handle('celular:info', () => painelCelular.estado());
 // Snapshot dos números das contas, a cada 3 s enquanto o painel está ligado. Só a janela principal manda.
 ipcMain.on('celular:snapshot', (e, dados) => {
   if (win && !win.isDestroyed() && e.sender === win.webContents) painelCelular.guardarSnapshot(dados);
+});
+// Ações pedidas pelo celular: a janela principal (central) executa e confirma. Sem resposta em 4,5 s, a
+// recusa sai daqui (o painel espera 5 s no máximo, então a página sempre recebe um motivo).
+const acoesDoCelular = new Map(); // pedido -> quem espera a resposta
+let proximoPedidoCelular = 1;
+painelCelular.definirAcao((acao) => new Promise((resolve) => {
+  if (!win || win.isDestroyed()) return resolve({ ok: false, motivo: 'O app não está aberto.' });
+  const pedido = proximoPedidoCelular++;
+  const timer = setTimeout(() => {
+    acoesDoCelular.delete(pedido);
+    resolve({ ok: false, motivo: 'A central não respondeu a tempo.' });
+  }, 4500);
+  acoesDoCelular.set(pedido, (r) => { clearTimeout(timer); resolve(r); });
+  win.webContents.send('celular:acao', { pedido, conta: acao.conta, acao: acao.acao, params: acao.params });
+}));
+ipcMain.on('celular:acaoResposta', (e, r) => {
+  if (!win || win.isDestroyed() || e.sender !== win.webContents || !r) return;
+  const responder = acoesDoCelular.get(r.pedido);
+  if (!responder) return;
+  acoesDoCelular.delete(r.pedido);
+  responder({ ok: r.ok === true, motivo: r.motivo || null });
 });
 
 function iniciarApp() {

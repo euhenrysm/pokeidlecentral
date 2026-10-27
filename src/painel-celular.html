@@ -21,6 +21,7 @@
       --erro: #ff6b5e;
       --aviso: #ffb547;
     }
+    [hidden] { display: none !important; }
     * { box-sizing: border-box; }
     html, body { margin: 0; background: var(--bg); color: var(--texto); }
     body {
@@ -97,7 +98,7 @@
     .pokemon-txt b {
       display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .pokemon-txt b.shiny { color: var(--destaque); }
+    .pokemon-txt b.shiny, .shiny { color: var(--destaque); }
     .pokemon-txt .nv { display: block; color: var(--suave); font-size: 12px; }
     .barra { height: 8px; margin-top: 6px; border-radius: 999px; background: var(--painel-3); overflow: hidden; }
     .barra i { display: block; height: 100%; background: var(--ok); }
@@ -125,6 +126,97 @@
     }
     .selo.on { color: var(--destaque); border-color: var(--destaque); }
     .vazio { padding: 30px 10px; text-align: center; color: var(--suave); }
+
+    /* Botões e campos (aba Controle) */
+    .btn {
+      min-height: 40px; padding: 8px 12px; border-radius: 10px;
+      border: 1px solid var(--borda-forte); background: var(--painel-2);
+      color: var(--texto); font: inherit; font-weight: 600; cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn.primario { background: var(--destaque); border-color: var(--destaque); color: #15170d; }
+    .btn.perigo { color: var(--erro); border-color: var(--erro); }
+    .btn:disabled { opacity: .45; cursor: default; }
+    .controlar {
+      width: 100%; min-height: 44px; border-radius: 12px;
+      border: 1px solid var(--destaque); background: transparent;
+      color: var(--destaque); font: inherit; font-weight: 700; cursor: pointer;
+    }
+    input[type="search"], input[type="number"] {
+      width: 100%; min-height: 40px; padding: 8px 10px; border-radius: 10px;
+      border: 1px solid var(--borda-forte); background: var(--painel-2);
+      color: var(--texto); font: inherit;
+    }
+    input[type="number"] { width: 84px; }
+    .tela-conta { display: flex; flex-direction: column; gap: 12px; }
+    .conta-topo { display: flex; align-items: center; gap: 10px; min-width: 0; flex-wrap: wrap; }
+    .conta-topo b { flex: 1; min-width: 0; font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .abas-conta { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+    .abas-conta button {
+      flex: none; min-height: 38px; padding: 6px 12px; border-radius: 999px;
+      border: 1px solid var(--borda-forte); background: var(--painel-2);
+      color: var(--suave); font: inherit; font-weight: 600; cursor: pointer;
+    }
+    .abas-conta button[aria-pressed="true"] { background: var(--destaque); border-color: var(--destaque); color: #15170d; }
+    .resultado {
+      margin: 0; padding: 10px 12px; border-radius: 12px;
+      background: var(--painel-2); border: 1px solid var(--borda); overflow-wrap: anywhere;
+    }
+    .resultado.ok { color: var(--ok); }
+    .resultado.erro { color: var(--erro); }
+    .painel { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+    .lista { display: flex; flex-direction: column; gap: 6px; }
+    .item {
+      display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0;
+      padding: 10px 12px; border-radius: 12px;
+      background: var(--painel-2); border: 1px solid var(--borda);
+      color: var(--texto); font: inherit; text-align: left; cursor: pointer;
+    }
+    button.item:disabled { opacity: .6; cursor: default; }
+    button.item.atual { border-color: var(--destaque); }
+    button.item.bloqueada { opacity: .45; }
+    .regioes { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+    .regiao {
+      flex: none; min-height: 50px; padding: 6px 12px; border-radius: 12px;
+      border: 1px solid var(--borda-forte); background: var(--painel-2);
+      color: var(--texto); font: inherit; text-align: left; cursor: pointer;
+    }
+    .regiao b, .regiao small { display: block; white-space: nowrap; }
+    .regiao small { color: var(--suave); font-size: 12px; }
+    .regiao[aria-pressed="true"] { background: var(--destaque); border-color: var(--destaque); color: #15170d; }
+    .regiao[aria-pressed="true"] small { color: #15170d; }
+    .item .txt, .txt-pk { flex: 1; min-width: 0; }
+    .item .txt b, .txt-pk b, .txt small, .txt-pk small {
+      display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .item small, .txt-pk small { color: var(--suave); font-size: 12px; }
+    .item-pk {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      padding: 10px 12px; border-radius: 12px; background: var(--painel-2); border: 1px solid var(--borda);
+    }
+    .item-pk .controles { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+    .linha-auto {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+      padding: 12px; border-radius: 14px; background: var(--painel-2); border: 1px solid var(--borda);
+    }
+    .linha-auto b { display: block; }
+    .linha-auto small { color: var(--suave); font-size: 12px; }
+    .rotulo-lista { margin: 6px 0 0; color: var(--suave); font-size: 11px; text-transform: uppercase; letter-spacing: .4px; }
+    .ocupada { pointer-events: none; opacity: .7; }
+
+    /* Confirmação antes de trocar hunt, usar ou descartar */
+    .fundo {
+      position: fixed; inset: 0; z-index: 5; padding: 16px;
+      display: grid; place-items: center;
+      background: rgba(0, 0, 0, .6);
+    }
+    .caixa {
+      width: 100%; max-width: 380px; padding: 16px; border-radius: 16px;
+      background: var(--painel); border: 1px solid var(--borda-forte);
+      overflow-wrap: anywhere;
+    }
+    .caixa p { margin: 0 0 14px; }
+    .botoes { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
   </style>
 </head>
 <body>
@@ -136,7 +228,74 @@
     <p id="aviso" class="aviso" role="status" hidden></p>
     <p id="atualizado" class="atualizado"></p>
     <section id="cartoes" class="cartoes" aria-live="polite"></section>
+
+    <section id="tela-conta" class="tela-conta" hidden>
+      <div class="conta-topo">
+        <button id="voltar" class="btn" type="button">← Voltar</button>
+        <b id="conta-titulo"></b>
+        <span id="conta-pilula" class="pilula"></span>
+      </div>
+      <p id="resultado" class="resultado" role="status" hidden></p>
+      <nav class="abas-conta" aria-label="Controle da conta">
+        <button type="button" data-aba="hunt" aria-pressed="true">Hunt</button>
+        <button type="button" data-aba="time" aria-pressed="false">Time</button>
+        <button type="button" data-aba="mochila" aria-pressed="false">Mochila</button>
+        <button type="button" data-aba="centro" aria-pressed="false">Centro</button>
+        <button type="button" data-aba="automacao" aria-pressed="false">Automação</button>
+      </nav>
+
+      <div class="painel" data-painel="hunt">
+        <input id="busca-hunt" type="search" placeholder="Buscar hunt" aria-label="Buscar hunt">
+        <div id="lista-regioes" class="regioes" role="group" aria-label="Regiões do mapa"></div>
+        <div id="lista-hunt" class="lista"></div>
+      </div>
+
+      <div class="painel" data-painel="time" hidden>
+        <p class="rotulo-lista">No time</p>
+        <div id="lista-time" class="lista"></div>
+        <p class="rotulo-lista">Depósito (os de maior nível primeiro)</p>
+        <div id="lista-deposito" class="lista"></div>
+      </div>
+
+      <div class="painel" data-painel="mochila" hidden>
+        <input id="busca-mochila" type="search" placeholder="Buscar item" aria-label="Buscar item">
+        <div id="lista-mochila" class="lista"></div>
+      </div>
+
+      <div class="painel" data-painel="centro" hidden>
+        <div class="linha-auto">
+          <div><b>Ir ao Centro Pokémon</b><small>A conta vai ao Centro e para de caçar.</small></div>
+          <button id="ir-centro" class="btn" type="button">Ir ao Centro</button>
+        </div>
+        <div class="linha-auto">
+          <div><b>Curar no Centro</b><small>Cura a equipe no Centro Pokémon.</small></div>
+          <button id="curar" class="btn" type="button">Curar</button>
+        </div>
+      </div>
+
+      <div class="painel" data-painel="automacao" hidden>
+        <div class="linha-auto">
+          <div><b>Sniper</b><small id="auto-sniper-estado">—</small></div>
+          <button id="auto-sniper" class="btn" type="button">—</button>
+        </div>
+        <div class="linha-auto">
+          <div><b>Lançar bolas (captura)</b><small id="auto-captura-estado">—</small></div>
+          <button id="auto-captura" class="btn" type="button">—</button>
+        </div>
+      </div>
+    </section>
   </main>
+
+  <div id="confirma" class="fundo" hidden>
+    <div class="caixa" role="dialog" aria-modal="true" aria-labelledby="confirma-texto">
+      <p id="confirma-texto"></p>
+      <div class="botoes">
+        <button id="confirma-nao" class="btn" type="button">Cancelar</button>
+        <button id="confirma-sim" class="btn primario" type="button">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     (function () {
       'use strict';
@@ -147,13 +306,31 @@
       var INTERVALO_MS = 3000;
       var LIMITE_SEM_DADOS_MS = 15000;
       var CODIGO = /^[0-9a-f]{64}$/;
+      var SEM_LISTA = 'A conta ainda não mandou a lista. Aguarde alguns segundos.';
 
       var estadoEl = document.getElementById('estado');
       var avisoEl = document.getElementById('aviso');
       var atualizadoEl = document.getElementById('atualizado');
       var cartoesEl = document.getElementById('cartoes');
+      var telaEl = document.getElementById('tela-conta');
+      var tituloEl = document.getElementById('conta-titulo');
+      var pilulaEl = document.getElementById('conta-pilula');
+      var resultadoEl = document.getElementById('resultado');
+      var confirmaEl = document.getElementById('confirma');
+      var confirmaTextoEl = document.getElementById('confirma-texto');
+      var buscaHuntEl = document.getElementById('busca-hunt');
+      var buscaMochilaEl = document.getElementById('busca-mochila');
       var codigo = lerCodigo();
       var timer = null;
+
+      var ultimoDados = null;   // última resposta de /api/estado
+      var contaAberta = -1;     // conta na tela Controle (-1: nenhuma)
+      var abaAberta = 'hunt';
+      var ocupado = false;      // um pedido de ação por vez
+      var aoConfirmar = null;   // o que fazer se a pessoa confirmar
+      var assinaturas = {};     // lista -> última versão desenhada (não redesenha à toa)
+      var quantidades = {};     // conta:id do item -> quantidade digitada no Descartar
+      var regiaoPorConta = {};  // conta -> região escolhida na aba Hunt (só enquanto a página estiver aberta)
 
       function lerCodigo() {
         var cod = null;
@@ -184,6 +361,15 @@
         return e;
       }
 
+      function botao(texto, aoClicar, classe) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'btn' + (classe ? ' ' + classe : '');
+        b.textContent = texto;
+        b.addEventListener('click', aoClicar);
+        return b;
+      }
+
       function formatar(n) {
         return typeof n === 'number' && n >= 0 ? n.toLocaleString('pt-BR') : '—';
       }
@@ -204,6 +390,9 @@
         var m = Math.floor((s % 3600) / 60);
         return h + ':' + String(m).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
       }
+      function pctHp(x) {
+        return x.hp != null && x.hpMax ? Math.max(0, Math.min(100, Math.round((x.hp / x.hpMax) * 100))) : null;
+      }
 
       function definirEstado(texto, classe) {
         estadoEl.textContent = texto;
@@ -212,6 +401,11 @@
       function mostrarAviso(texto) {
         avisoEl.textContent = texto || '';
         avisoEl.hidden = !texto;
+      }
+      function mostrarResultado(texto, tipo) {
+        resultadoEl.textContent = texto || '';
+        resultadoEl.className = 'resultado' + (tipo ? ' ' + tipo : '');
+        resultadoEl.hidden = !texto;
       }
 
       function metrica(rotulo, valor) {
@@ -224,7 +418,7 @@
         return x ? (x.nome || 'Item') + ' · restam ' + formatar(x.qtd) : '—';
       }
 
-      function cartao(c) {
+      function cartao(c, i) {
         var online = c.online === true;
         var nome = c.nome || 'Conta';
         var titulo = c.nick || nome;
@@ -249,7 +443,7 @@
         }
         var txtPk = el('div', 'pokemon-txt');
         if (pk) {
-          var pct = pk.hp != null && pk.hpMax ? Math.max(0, Math.min(100, Math.round((pk.hp / pk.hpMax) * 100))) : null;
+          var pct = pctHp(pk);
           var barra = el('div', 'barra');
           var preench = el('i', pct != null && pct < 30 ? 'baixo' : '');
           preench.style.width = (pct == null ? 0 : pct) + '%';
@@ -286,14 +480,317 @@
           el('div', 'drops', drops),
           el('div', 'selos',
             el('span', 'selo' + (c.sniperLigado ? ' on' : ''), c.sniperLigado ? 'Sniper ligado' : 'Sniper desligado'),
-            el('span', 'selo' + (c.capturaLigada ? ' on' : ''), c.capturaLigada ? 'Captura ligada' : 'Captura desligada')));
+            el('span', 'selo' + (c.capturaLigada ? ' on' : ''), c.capturaLigada ? 'Captura ligada' : 'Captura desligada')),
+          botao('Controlar', function () { abrirConta(i); }, 'controlar'));
       }
 
+      // ---------------------------------------------------------- Tela Controle da conta
+
+      function codigoInvalido() {
+        pararAtualizacao();
+        definirEstado('Código inválido', 'erro');
+        mostrarAviso('Código inválido. Escaneie o QR de novo na central.');
+        fecharConta();
+      }
+
+      function contaAtual() {
+        return ultimoDados && Array.isArray(ultimoDados.contas) ? ultimoDados.contas[contaAberta] || null : null;
+      }
+
+      function abrirConta(i) {
+        contaAberta = i;
+        abaAberta = 'hunt';
+        cartoesEl.hidden = true;
+        telaEl.hidden = false;
+        mostrarResultado('', '');
+        desenharTela();
+        window.scrollTo(0, 0);
+      }
+
+      function fecharConta() {
+        contaAberta = -1;
+        telaEl.hidden = true;
+        cartoesEl.hidden = false;
+        fecharConfirmacao();
+        mostrarResultado('', '');
+      }
+
+      // Desenha uma lista só quando a versão dela mudou (a assinatura inclui a conta aberta).
+      function desenharLista(listaEl, assinatura, montar) {
+        var chave = contaAberta + '|' + assinatura;
+        if (assinaturas[listaEl.id] === chave) return;
+        assinaturas[listaEl.id] = chave;
+        listaEl.replaceChildren(...montar());
+      }
+
+      function linhaBotao(classe, titulo, sub, aoClicar, desabilitado) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'item' + (classe ? ' ' + classe : '');
+        b.disabled = Boolean(desabilitado);
+        b.appendChild(el('span', 'txt', el('b', '', titulo), el('small', '', sub)));
+        if (aoClicar) b.addEventListener('click', aoClicar);
+        return b;
+      }
+
+      // A região mostrada: a que a pessoa escolheu nesta conta; senão a da hunt atual; senão a primeira.
+      function regiaoDaVez(ctl) {
+        var regioes = ctl.regioes || [];
+        var ids = regioes.map(function (r) { return r.id; });
+        var lembrada = regiaoPorConta[contaAberta];
+        if (lembrada && ids.indexOf(lembrada) >= 0) return lembrada;
+        var atual = (ctl.hunts || []).filter(function (h) { return h.atual && ids.indexOf(h.regiao) >= 0; })[0];
+        return atual ? atual.regiao : (ids[0] || null);
+      }
+
+      function nomeDaRegiao(ctl, id) {
+        var r = (ctl.regioes || []).filter(function (x) { return x.id === id; })[0];
+        return r ? r.rotulo : id;
+      }
+
+      // Fileira de regiões (rola de lado): cadeado nas trancadas, a escolhida destacada.
+      function desenharRegioes(regiaoEl, ctl, sel) {
+        var regioes = ctl.regioes || [];
+        desenharLista(regiaoEl, JSON.stringify(regioes) + '|' + sel, function () {
+          return regioes.map(function (r) {
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'regiao';
+            b.setAttribute('aria-pressed', String(r.id === sel));
+            b.appendChild(el('b', '', (r.trancada ? '🔒 ' : '') + r.rotulo));
+            b.appendChild(el('small', '', 'Nv. ' + formatar(r.nivel)));
+            b.addEventListener('click', function () {
+              regiaoPorConta[contaAberta] = r.id;
+              desenharTela();
+            });
+            return b;
+          });
+        });
+      }
+
+      // Com busca, mostra as hunts de todas as regiões (com o nome da região). Sem busca, só a região escolhida.
+      function desenharHunts(ctl) {
+        var lista = document.getElementById('lista-hunt');
+        var regiaoEl = document.getElementById('lista-regioes');
+        if (!ctl) {
+          regiaoEl.hidden = true;
+          return desenharLista(lista, 'sem-lista', function () { return [el('p', 'vazio', SEM_LISTA)]; });
+        }
+        var termo = buscaHuntEl.value.trim().toLowerCase();
+        var sel = regiaoDaVez(ctl);
+        regiaoEl.hidden = Boolean(termo);
+        if (!termo) desenharRegioes(regiaoEl, ctl, sel);
+        var hunts = (ctl.hunts || []).filter(function (h) {
+          return termo ? (h.nome + ' ' + h.slug).toLowerCase().indexOf(termo) >= 0 : h.regiao === sel;
+        });
+        desenharLista(lista, termo + '|' + sel + JSON.stringify(hunts), function () {
+          if (!hunts.length) return [el('p', 'vazio', termo ? 'Nenhuma hunt combina com a busca.' : 'Nenhuma hunt nesta região.')];
+          return hunts.map(function (h) {
+            var trancada = !h.liberada;
+            var partes = [termo ? nomeDaRegiao(ctl, h.regiao) : null, 'Nv. ' + formatar(h.nivel), h.atual ? 'atual' : null];
+            var classes = [h.atual ? 'atual' : '', trancada ? 'bloqueada' : ''].filter(Boolean).join(' ');
+            return linhaBotao(classes, (trancada ? '🔒 ' : '') + h.nome, partes.filter(Boolean).join(' · '),
+              function () {
+                confirmar('Trocar para a hunt ' + h.nome + '?', function () {
+                  agir('hunt', { slug: h.slug }, 'Hunt trocada para ' + h.nome + '.');
+                });
+              }, h.atual || trancada);
+          });
+        });
+      }
+
+      function desenharTime(ctl) {
+        var equipe = document.getElementById('lista-time');
+        var deposito = document.getElementById('lista-deposito');
+        if (!ctl) {
+          desenharLista(equipe, 'sem-lista', function () { return [el('p', 'vazio', SEM_LISTA)]; });
+          return desenharLista(deposito, 'sem-lista', function () { return []; });
+        }
+        desenharLista(equipe, JSON.stringify(ctl.equipe), function () {
+          if (!ctl.equipe.length) return [el('p', 'vazio', 'Nenhum pokémon no time.')];
+          return ctl.equipe.map(function (x) {
+            var pct = pctHp(x);
+            var info = el('div', 'txt-pk',
+              el('b', x.shiny ? 'shiny' : '', x.nome),
+              el('small', '', 'Nv. ' + formatar(x.nivel) + (pct != null ? ' · HP ' + pct + '%' : '')));
+            var acao = x.ativo ? el('span', 'pilula on', 'Ativo') : botao('Ativar', function () {
+              agir('ativo', { pokemonId: x.id }, x.nome + ' virou o pokémon ativo.');
+            }, '');
+            return el('div', 'item-pk', info, acao);
+          });
+        });
+        desenharLista(deposito, JSON.stringify(ctl.deposito), function () {
+          if (!ctl.deposito.length) return [el('p', 'vazio', 'Nenhum pokémon no depósito.')];
+          return ctl.deposito.map(function (x) {
+            var info = el('div', 'txt-pk', el('b', '', x.nome), el('small', '', 'Nv. ' + formatar(x.nivel)));
+            var acao = botao('Pôr no time', function () {
+              agir('paraTime', { pokemonId: x.id }, x.nome + ' foi para o time.');
+            }, '');
+            return el('div', 'item-pk', info, acao);
+          });
+        });
+      }
+
+      function desenharMochila(ctl) {
+        var lista = document.getElementById('lista-mochila');
+        if (!ctl) return desenharLista(lista, 'sem-lista', function () { return [el('p', 'vazio', SEM_LISTA)]; });
+        var termo = buscaMochilaEl.value.trim().toLowerCase();
+        var itens = (ctl.mochila || []).filter(function (it) {
+          return !termo || it.nome.toLowerCase().indexOf(termo) >= 0;
+        });
+        desenharLista(lista, termo + JSON.stringify(itens), function () {
+          if (!itens.length) return [el('p', 'vazio', termo ? 'Nenhum item combina com a busca.' : 'A mochila está vazia.')];
+          return itens.map(function (it) {
+            var info = el('div', 'txt-pk', el('b', '', it.nome), el('small', '', 'Restam ' + formatar(it.qtd)));
+            // Bolas: o valor do jogo para descartar ainda não foi confirmado, então só mostram a quantidade.
+            if (it.tipo === 'ball') return el('div', 'item-pk', info, el('small', '', 'Bola: use pela central'));
+            var chave = contaAberta + ':' + it.id;
+            var qtdEl = document.createElement('input');
+            qtdEl.type = 'number';
+            qtdEl.min = '1';
+            qtdEl.max = String(it.qtd);
+            qtdEl.inputMode = 'numeric';
+            qtdEl.value = quantidades[chave] || '1';
+            qtdEl.setAttribute('aria-label', 'Quantidade de ' + it.nome);
+            qtdEl.addEventListener('input', function () { quantidades[chave] = qtdEl.value; });
+            var controles = el('div', 'controles',
+              botao('Usar', function () {
+                confirmar('Usar 1× ' + it.nome + '?', function () { agir('usarItem', { itemId: it.id }, it.nome + ' usado.'); });
+              }, ''),
+              qtdEl,
+              botao('Descartar', function () {
+                var q = Math.floor(Number(qtdEl.value));
+                if (!(q >= 1) || q > it.qtd) return mostrarResultado('Digite uma quantidade de 1 a ' + it.qtd + '.', 'erro');
+                confirmar('Descartar ' + q + '× ' + it.nome + '? Não dá para desfazer.', function () {
+                  agir('descartar', { tipo: 'item', id: it.id, qtd: q }, q + '× ' + it.nome + ' descartado(s).');
+                });
+              }, 'perigo'));
+            return el('div', 'item-pk', info, controles);
+          });
+        });
+      }
+
+      function desenharAutomacao(c) {
+        var sn = c.sniperLigado === true;
+        var cap = c.capturaLigada === true;
+        document.getElementById('auto-sniper-estado').textContent = sn ? 'Ligado nesta conta' : 'Desligado nesta conta';
+        var bSn = document.getElementById('auto-sniper');
+        bSn.textContent = sn ? 'Desligar' : 'Ligar';
+        bSn.className = 'btn' + (sn ? '' : ' primario');
+        document.getElementById('auto-captura-estado').textContent = cap ? 'Ligada nesta conta' : 'Desligada nesta conta';
+        var bCap = document.getElementById('auto-captura');
+        bCap.textContent = cap ? 'Desligar' : 'Ligar';
+        bCap.className = 'btn' + (cap ? '' : ' primario');
+      }
+
+      function desenharTela() {
+        if (contaAberta < 0) return;
+        var c = contaAtual();
+        if (!c) return mostrarResultado('Sem dados desta conta agora. Confira se a central está aberta.', 'erro');
+        tituloEl.textContent = c.nick || c.nome || 'Conta';
+        pilulaEl.textContent = c.online ? 'Online' : 'Offline';
+        pilulaEl.className = 'pilula' + (c.online ? ' on' : '');
+        document.querySelectorAll('.abas-conta button').forEach(function (b) {
+          b.setAttribute('aria-pressed', String(b.getAttribute('data-aba') === abaAberta));
+        });
+        document.querySelectorAll('[data-painel]').forEach(function (p) {
+          p.hidden = p.getAttribute('data-painel') !== abaAberta;
+        });
+        var ctl = c.controle || null;
+        if (abaAberta === 'hunt') desenharHunts(ctl);
+        else if (abaAberta === 'time') desenharTime(ctl);
+        else if (abaAberta === 'mochila') desenharMochila(ctl);
+        else if (abaAberta === 'automacao') desenharAutomacao(c);
+      }
+
+      // ---------------------------------------------------------- Ações
+
+      // Manda a ação à central (que confere e executa) e mostra o que ela confirmou ou recusou.
+      function agir(acao, params, sucesso) {
+        if (ocupado || contaAberta < 0 || !codigo) return;
+        ocupado = true;
+        telaEl.classList.add('ocupada');
+        mostrarResultado('Enviando…', '');
+        var corpo = { conta: contaAberta, acao: acao };
+        Object.keys(params || {}).forEach(function (k) { corpo[k] = params[k]; });
+        fetch('/api/acao', {
+          method: 'POST',
+          cache: 'no-store',
+          headers: { Authorization: 'Bearer ' + codigo, 'Content-Type': 'application/json' },
+          body: JSON.stringify(corpo)
+        })
+          .then(function (r) {
+            return r.json().catch(function () { return { ok: false, motivo: 'Resposta inválida da central.' }; })
+              .then(function (d) { return { status: r.status, dados: d }; });
+          })
+          .then(function (res) {
+            if (res.status === 401) return codigoInvalido();
+            var d = res.dados || {};
+            if (d.ok) mostrarResultado(sucesso || 'Feito.', 'ok');
+            else mostrarResultado(d.motivo || 'A central recusou a ação.', 'erro');
+            atualizar();
+          })
+          .catch(function () {
+            mostrarResultado('Sem conexão com a central. Confira a rede Wi-Fi.', 'erro');
+          })
+          .then(function () {
+            ocupado = false;
+            telaEl.classList.remove('ocupada');
+          });
+      }
+
+      function confirmar(texto, aoSim) {
+        confirmaTextoEl.textContent = texto;
+        aoConfirmar = aoSim;
+        confirmaEl.hidden = false;
+        document.getElementById('confirma-sim').focus();
+      }
+      function fecharConfirmacao() {
+        confirmaEl.hidden = true;
+        aoConfirmar = null;
+      }
+      document.getElementById('confirma-nao').addEventListener('click', fecharConfirmacao);
+      document.getElementById('confirma-sim').addEventListener('click', function () {
+        var f = aoConfirmar;
+        fecharConfirmacao();
+        if (f) f();
+      });
+      confirmaEl.addEventListener('click', function (e) { if (e.target === confirmaEl) fecharConfirmacao(); });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !confirmaEl.hidden) fecharConfirmacao(); });
+
+      document.getElementById('voltar').addEventListener('click', fecharConta);
+      document.querySelectorAll('.abas-conta button').forEach(function (b) {
+        b.addEventListener('click', function () {
+          abaAberta = b.getAttribute('data-aba');
+          desenharTela();
+        });
+      });
+      buscaHuntEl.addEventListener('input', desenharTela);
+      buscaMochilaEl.addEventListener('input', desenharTela);
+      document.getElementById('ir-centro').addEventListener('click', function () {
+        agir('centro', {}, 'Indo ao Centro Pokémon.');
+      });
+      document.getElementById('curar').addEventListener('click', function () {
+        agir('curar', {}, 'Curando no Centro Pokémon.');
+      });
+      document.getElementById('auto-sniper').addEventListener('click', function () {
+        var c = contaAtual();
+        if (c) agir('sniper', { ligado: !c.sniperLigado }, c.sniperLigado ? 'Sniper desligado.' : 'Sniper ligado.');
+      });
+      document.getElementById('auto-captura').addEventListener('click', function () {
+        var c = contaAtual();
+        if (c) agir('captura', { ligado: !c.capturaLigada }, c.capturaLigada ? 'Captura desligada.' : 'Captura ligada.');
+      });
+
+      // ---------------------------------------------------------- Dados
+
       function desenhar(dados) {
+        ultimoDados = dados;
         if (!dados.geradoEm) {
           definirEstado('Aguardando', '');
           atualizadoEl.textContent = 'A central ainda não mandou os números. Deixe o app aberto com o painel ligado.';
           cartoesEl.replaceChildren(el('p', 'vazio', 'Aguardando os dados…'));
+          if (contaAberta >= 0) desenharTela();
           return;
         }
         var hora = new Date(dados.geradoEm).toLocaleTimeString('pt-BR');
@@ -308,6 +805,7 @@
         }
         var contas = Array.isArray(dados.contas) ? dados.contas : [];
         cartoesEl.replaceChildren(...contas.map(cartao));
+        if (contaAberta >= 0) desenharTela();
       }
 
       function atualizar() {
@@ -320,9 +818,7 @@
         fetch('/api/estado', { cache: 'no-store', headers: { Authorization: 'Bearer ' + codigo } })
           .then(function (r) {
             if (r.status === 401) {
-              pararAtualizacao();
-              definirEstado('Código inválido', 'erro');
-              mostrarAviso('Código inválido. Escaneie o QR de novo na central.');
+              codigoInvalido();
               return null;
             }
             if (!r.ok) throw new Error('resposta ' + r.status);

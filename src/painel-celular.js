@@ -1,5 +1,6 @@
-// Painel no celular: um servidor HTTP na rede local que mostra os números das contas numa página só de
-// leitura. Só liga quando o interruptor da aba Config está ligado (ou ao abrir o app, se estava ligado).
+// Painel no celular: um servidor HTTP na rede local que mostra os números das contas e deixa o celular
+// controlar as contas (hunt, time, mochila, Centro, sniper e captura). Só liga quando o interruptor da aba
+// Config está ligado (ou ao abrir o app, se estava ligado). O código de acesso é como uma senha.
 const http = require('http');
 const os = require('os');
 const fs = require('fs');
@@ -13,9 +14,18 @@ try { qrcode = require('qrcode-generator'); } catch { qrcode = null; }
 // Portas fixas: se a primeira estiver ocupada, tenta as seguintes.
 const PORTAS = [47740, 47741, 47742, 47743, 47744, 47745];
 const MAX_POR_SEGUNDO = 10; // pedidos por IP a cada segundo (passou disso: 429)
+const MAX_ACOES_POR_SEGUNDO = 2; // ações (POST /api/acao) por IP a cada segundo, além do limite geral (passou disso: 429)
+const TEMPO_ACAO_MS = 5000; // quanto a página espera a central confirmar uma ação (passou disso: 504)
 const MAX_IPS = 8; // IPs diferentes com pedidos nos últimos 60 s (passou disso: 429)
 const JANELA_IPS_MS = 60_000;
-const MAX_CORPO = 8 * 1024; // corpo maior que isso: 413; qualquer outro corpo: 400 (a página só recebe GET)
+const MAX_CORPO = 8 * 1024; // corpo maior que isso: 413; qualquer outro corpo: 400 (só o POST /api/acao recebe corpo)
+const MAX_CORPO_ACAO = 2 * 1024; // corpo de uma ação: até 2 KB (passou disso: 413)
+const ACOES = ['hunt', 'ativo', 'paraTime', 'usarItem', 'descartar', 'centro', 'curar', 'sniper', 'captura'];
+const MAX_EQUIPE = 12;
+const MAX_DEPOSITO = 30;
+const MAX_HUNTS = 600;
+const MAX_REGIOES = 20;
+const MAX_MOCHILA = 200;
 const MAX_IMAGEM = 300_000; // tamanho máximo de uma imagem embutida (data:) no snapshot
 const MAX_CONTAS = 4;
 const HOSTS_IMAGEM = ['raw.githubusercontent.com', 'pokeidle.io'];
@@ -38,8 +48,10 @@ let subindo = null; // ligada em andamento (um clique duplo não sobe dois servi
 let ultimoSnapshot = null; // { geradoEm, contas }
 const sockets = new Set();
 const pedidosPorIp = new Map(); // ip -> { inicio, n }
+const acoesPorIp = new Map(); // ip -> { inicio, n }: ações por segundo
 const ipsAtivos = new Map(); // ip -> quando fez o último pedido
 let paginaCache = null;
+let aoAcao = null; // quem executa as ações (o app): recebe { conta, acao, params } e devolve { ok, motivo }
 
 // Primeiro IPv4 privado (10/8, 172.16/12 ou 192.168/16) que não seja interno: o endereço que o celular usa.
 function ipDaRede() {
@@ -84,6 +96,18 @@ function dentroDoLimite(origem) {
   return janela.n <= MAX_POR_SEGUNDO;
 }
 
+// Limite das ações: no máximo MAX_ACOES_POR_SEGUNDO por IP a cada segundo.
+function dentroDoLimiteAcao(origem) {
+  const agora = Date.now();
+  let janela = acoesPorIp.get(origem);
+  if (!janela || agora - janela.inicio >= 1000) {
+    janela = { inicio: agora, n: 0 };
+    acoesPorIp.set(origem, janela);
+  }
+  janela.n++;
+  return janela.n <= MAX_ACOES_POR_SEGUNDO;
+}
+
 // Só os campos da lista fechada passam, com texto sem caracteres de controle e com tamanho máximo.
 const texto = (v, max) => {
   if (typeof v !== 'string') return null;
@@ -104,6 +128,42 @@ const imagem = (v) => {
   }
 };
 const item = (x) => (x && typeof x === 'object' ? { nome: texto(x.nome, 60), qtd: numero(x.qtd) } : null);
+// Ids do jogo: inteiros não negativos. Qualquer outra coisa vira null e a linha sai da lista.
+const inteiroId = (v) => (Number.isSafeInteger(v) && v >= 0 ? v : null);
+// Trecho de uma lista: no máximo `max` itens, cada um pelo `f`, sem os que vierem vazios.
+const trecho = (v, max, f) => (Array.isArray(v) ? v.slice(0, max).map((x) => (x && typeof x === 'object' ? f(x) : null)).filter(Boolean) : []);
+
+// Lista da aba Controle (vem do motor, pela central). Só os campos abaixo passam.
+function sanitizarControle(c) {
+  if (!c || typeof c !== 'object') return null;
+  const pokemon = (x) => {
+    const id = inteiroId(x.id);
+    return id === null ? null : { id, nome: texto(x.nome, 60) || 'Pokémon', nivel: numero(x.nivel), hp: numero(x.hp), hpMax: numero(x.hpMax), shiny: x.shiny === true, ativo: x.ativo === true, slot: numero(x.slot) };
+  };
+  // Região: só id curto de letras minúsculas (kanto, johto...). Qualquer outra coisa vira vazio.
+  const idRegiao = (v) => (typeof v === 'string' && /^[a-z]{1,20}$/.test(v) ? v : null);
+  return {
+    hunts: trecho(c.hunts, MAX_HUNTS, (h) => {
+      const slug = texto(h.slug, 60);
+      return slug ? { slug, nome: texto(h.nome, 60) || slug, regiao: idRegiao(h.regiao), nivel: numero(h.nivel), liberada: h.liberada === true, atual: h.atual === true } : null;
+    }),
+    regioes: trecho(c.regioes, MAX_REGIOES, (r) => {
+      const id = idRegiao(r.id);
+      return id ? { id, rotulo: texto(r.rotulo, 30) || id, nivel: numero(r.nivel), trancada: r.trancada === true } : null;
+    }),
+    equipe: trecho(c.equipe, MAX_EQUIPE, pokemon),
+    deposito: trecho(c.deposito, MAX_DEPOSITO, (x) => {
+      const id = inteiroId(x.id);
+      return id === null ? null : { id, nome: texto(x.nome, 60) || 'Pokémon', nivel: numero(x.nivel) };
+    }),
+    mochila: trecho(c.mochila, MAX_MOCHILA, (x) => {
+      const id = inteiroId(x.id);
+      const qtd = numero(x.qtd);
+      if (id === null || !qtd) return null;
+      return { id, nome: texto(x.nome, 60) || 'Item', qtd, tipo: x.tipo === 'ball' ? 'ball' : 'item' };
+    })
+  };
+}
 
 function sanitizarConta(c) {
   const d = c && typeof c === 'object' ? c : {};
@@ -129,7 +189,8 @@ function sanitizarConta(c) {
     bola: item(d.bola),
     drops: Array.isArray(d.drops) ? d.drops.slice(0, 12).map(item).filter((x) => x && x.nome) : [],
     sniperLigado: d.sniperLigado === true,
-    capturaLigada: d.capturaLigada === true
+    capturaLigada: d.capturaLigada === true,
+    controle: sanitizarControle(d.controle)
   };
 }
 
@@ -149,6 +210,109 @@ function paginaHtml() {
   return paginaCache;
 }
 
+// Campos de cada ação. Só estes passam; o resto do corpo é ignorado. centro e curar não têm campos.
+function validarAcao(c) {
+  if (!c || typeof c !== 'object' || Array.isArray(c)) return { erro: 'pedido inválido' };
+  const conta = Number.isSafeInteger(c.conta) && c.conta >= 0 && c.conta < MAX_CONTAS ? c.conta : null;
+  if (conta === null) return { erro: 'conta inválida' };
+  if (typeof c.acao !== 'string' || !ACOES.includes(c.acao)) return { erro: 'ação desconhecida' };
+  const params = {};
+  switch (c.acao) {
+    case 'hunt': {
+      const slug = c.slug;
+      if (typeof slug !== 'string' || !slug.length || slug.length > 60 || /[\u0000-\u001f\u007f]/.test(slug)) return { erro: 'hunt inválida' };
+      params.slug = slug;
+      break;
+    }
+    case 'ativo':
+    case 'paraTime': {
+      const id = inteiroId(c.pokemonId);
+      if (id === null) return { erro: 'pokémon inválido' };
+      params.pokemonId = id;
+      break;
+    }
+    case 'usarItem': {
+      const id = inteiroId(c.itemId);
+      if (id === null) return { erro: 'item inválido' };
+      params.itemId = id;
+      break;
+    }
+    case 'descartar': {
+      const id = inteiroId(c.id);
+      const qtd = Number.isSafeInteger(c.qtd) && c.qtd >= 1 && c.qtd <= 100000 ? c.qtd : null;
+      if (c.tipo !== 'item' && c.tipo !== 'ball') return { erro: 'tipo de item inválido' };
+      if (id === null || qtd === null) return { erro: 'item ou quantidade inválidos' };
+      params.tipo = c.tipo;
+      params.id = id;
+      params.qtd = qtd;
+      break;
+    }
+    case 'sniper':
+    case 'captura': {
+      if (typeof c.ligado !== 'boolean') return { erro: 'ligado deve ser true ou false' };
+      params.ligado = c.ligado;
+      break;
+    }
+    default:
+      break;
+  }
+  return { acao: { conta, acao: c.acao, params } };
+}
+
+// Lê o corpo até o limite. Passou do limite: 'grande' (e o resto é descartado).
+function lerCorpo(req, limite, cb) {
+  let total = 0;
+  const pedacos = [];
+  let feito = false;
+  req.on('data', (p) => {
+    if (feito) return;
+    total += p.length;
+    if (total > limite) { feito = true; cb('grande'); return; }
+    pedacos.push(p);
+  });
+  req.on('end', () => { if (!feito) { feito = true; cb(null, Buffer.concat(pedacos).toString('utf8')); } });
+  req.on('error', () => { if (!feito) { feito = true; cb('erro'); } });
+}
+
+// POST /api/acao: valida, entrega à central e responde com o que ela confirmou (ou 504 se demorar).
+function acaoHttp(req, res, responder, origem) {
+  // Corpo grande pelo cabeçalho: recusado antes de qualquer outra coisa.
+  if (Number(req.headers['content-length'] || 0) > MAX_CORPO_ACAO) {
+    res.setHeader('Connection', 'close');
+    return responder(413, { ok: false, motivo: 'pedido grande demais' });
+  }
+  if (req.method !== 'POST') return responder(405, { ok: false, motivo: 'método não permitido' }, { Allow: 'POST' });
+  if (!tokenValido(req.headers.authorization)) return responder(401, { ok: false, motivo: 'código inválido' });
+  if (!/^application\/json\b/i.test(String(req.headers['content-type'] || ''))) {
+    return responder(415, { ok: false, motivo: 'envie o pedido como application/json' });
+  }
+  // O limite de ações conta só os pedidos válidos, os que de fato chegariam à central.
+  lerCorpo(req, MAX_CORPO_ACAO, (erro, texto) => {
+    if (erro === 'grande') {
+      res.setHeader('Connection', 'close');
+      return responder(413, { ok: false, motivo: 'pedido grande demais' });
+    }
+    if (erro) return responder(400, { ok: false, motivo: 'pedido inválido' });
+    let corpo;
+    try { corpo = JSON.parse(texto); } catch { return responder(400, { ok: false, motivo: 'JSON inválido' }); }
+    const v = validarAcao(corpo);
+    if (v.erro) return responder(400, { ok: false, motivo: v.erro });
+    if (!aoAcao) return responder(503, { ok: false, motivo: 'O app ainda não está pronto para ações.' });
+    if (!dentroDoLimiteAcao(origem)) return responder(429, { ok: false, motivo: 'ações demais: espere 1 s' });
+
+    let timer = null;
+    const espera = new Promise((resolve) => { timer = setTimeout(() => resolve(null), TEMPO_ACAO_MS); });
+    const central = Promise.resolve()
+      .then(() => aoAcao(v.acao))
+      .catch(() => ({ ok: false, motivo: 'Não consegui falar com a central.' }));
+    Promise.race([central, espera]).then((r) => {
+      clearTimeout(timer);
+      if (!r) return responder(504, { ok: false, motivo: 'A central não respondeu a tempo. Confira se o app está aberto.' });
+      return responder(200, { ok: r.ok === true, motivo: r.motivo || null });
+    });
+  });
+}
+
 function atender(req, res) {
   const origem = String(req.socket.remoteAddress || '').replace(/^::ffff:/, '');
   const responder = (status, corpo, cabec = {}) => {
@@ -156,6 +320,7 @@ function atender(req, res) {
     res.end(typeof corpo === 'string' ? corpo : JSON.stringify(corpo));
   };
   if (!dentroDoLimite(origem)) return responder(429, { ok: false, motivo: 'muitas requisições' });
+  if (String(req.url || '').split('?')[0] === '/api/acao') return acaoHttp(req, res, responder, origem);
 
   const tamanho = Number(req.headers['content-length'] || 0);
   if (req.headers['transfer-encoding'] || tamanho > 0) {
@@ -256,6 +421,7 @@ function desligar() {
   porta = 0;
   ultimoSnapshot = null;
   pedidosPorIp.clear();
+  acoesPorIp.clear();
   ipsAtivos.clear();
   return desligado();
 }
@@ -271,4 +437,18 @@ function estado() {
   return servidor ? resposta() : desligado();
 }
 
-module.exports = { ligar, desligar, novoCodigo, estado, guardarSnapshot };
+// Quem executa as ações (o app, pela central). Sem ele, o POST /api/acao responde 503.
+function definirAcao(fn) {
+  aoAcao = typeof fn === 'function' ? fn : null;
+}
+
+// Só para os testes: sobe o servidor numa porta livre, com um código novo, sem procurar a rede local.
+async function subirParaTestes() {
+  token = novoToken();
+  servidor = await escutar(0);
+  porta = servidor.address().port;
+  ip = '127.0.0.1';
+  return { porta, token };
+}
+
+module.exports = { ligar, desligar, novoCodigo, estado, guardarSnapshot, definirAcao, subirParaTestes };
