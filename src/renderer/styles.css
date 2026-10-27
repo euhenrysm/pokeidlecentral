@@ -1,0 +1,708 @@
+:root {
+  --bg: #0f1011;
+  --painel: #18191b;
+  --painel-2: #202124;
+  --painel-3: #2a2b2f;
+  --borda: #2b2c30;
+  --borda-forte: #3d3e44;
+  --texto: #f3f4f1;
+  --suave: #8d8f96;
+  --destaque: #d4f55a;
+  --ok: #8fe36b;
+  --erro: #ff6b5e;
+  --aviso: #ffb547;
+  --twitch: #b58cff;
+  --kick: #53fc18;
+  --fonte: "Urbanist", "Segoe UI", system-ui, sans-serif;
+  --pixel: var(--fonte);
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+}
+}
+
+* { box-sizing: border-box; }
+
+html { background: transparent; }
+html, body {
+  margin: 0;
+  height: 100%;
+  color: var(--texto);
+  font: 500 13px/1.4 var(--fonte);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+}
+
+button, input, select {
+  font: inherit;
+  color: var(--texto);
+  background: var(--painel-2);
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  padding: 5px 11px;
+}
+button { cursor: pointer; }
+button:hover { border-color: var(--borda-forte); background: var(--painel-3); }
+button:disabled { opacity: .4; cursor: not-allowed; }
+button:disabled:hover { border-color: var(--borda); background: var(--painel-2); }
+button.discreto { background: transparent; }
+input[type="checkbox"], input[type="radio"] { padding: 0; accent-color: var(--destaque); }
+
+.topo {
+  height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 16px;
+  background: var(--bg);
+}
+.marca b { color: var(--destaque); font-weight: 700; }
+/* As abas são um grupo de pílulas, como a navegação da referência. */
+.abas { display: flex; gap: 2px; padding: 4px; border-radius: 999px; background: var(--painel); border: 1px solid var(--borda); }
+.abas button { border: 0; background: transparent; color: var(--suave); border-radius: 999px; padding: 5px 14px; font-weight: 600; }
+.abas button:hover { background: var(--painel-3); color: var(--texto); }
+.abas button.ativa { background: var(--texto); color: var(--bg); }
+.selo {
+  display: inline-block;
+  min-width: 18px;
+  padding: 0 6px;
+  margin-left: 5px;
+  border-radius: 999px;
+  background: var(--painel-3);
+  color: var(--texto);
+  font-size: 11px;
+  font-weight: 700;
+}
+.abas button.ativa .selo { background: var(--bg); color: var(--texto); }
+.selo.on { background: var(--destaque); color: #15170d; }
+.selo.vivo { background: var(--erro); color: #fff; }
+.resumo { margin-left: auto; display: flex; gap: 12px; color: var(--suave); font-size: 12px; }
+.resumo .ponto { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; background: var(--erro); }
+.resumo .ponto.on { background: var(--destaque); }
+
+main { position: relative; height: calc(100% - 52px); }
+
+/* Camadas: a inativa sai da tela em vez de sumir, para os <webview> continuarem vivos. */
+.vista { position: absolute; inset: 0; padding: 4px 14px 14px; transform: translateX(-300vw); }
+.vista.ativa { transform: none; }
+
+.grade {
+  height: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 8px;
+  position: relative;
+}
+.conta {
+  display: flex;
+  flex-direction: column;
+  background: var(--painel);
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  overflow: hidden;
+  min-height: 0;
+}
+.conta.sniper { border-color: var(--destaque); }
+.grade.solo .conta { position: absolute; width: 1px; height: 1px; left: -10px; opacity: 0; pointer-events: none; }
+.grade.solo .conta.foco { position: absolute; inset: 0; width: auto; height: auto; left: 0; opacity: 1; pointer-events: auto; }
+.barra-conta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  background: var(--painel-2);
+  border-bottom: 1px solid var(--borda);
+}
+.barra-conta .nome { width: 120px; background: transparent; border-color: transparent; font-weight: 600; }
+.barra-conta .nome:focus { border-color: var(--borda); }
+.barra-conta .info { color: var(--suave); font-size: 12px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.barra-conta button { padding: 2px 8px; }
+.barra-conta .tag-sniper { color: var(--destaque); font-size: 11px; font-weight: 600; }
+.conta webview { flex: 1; min-height: 0; width: 100%; }
+
+.colunas { height: 100%; display: grid; grid-template-columns: minmax(380px, 520px) 1fr; gap: 10px; }
+.painel { background: var(--painel); border: 1px solid var(--borda); border-radius: 16px; padding: 12px 14px; overflow: auto; min-height: 0; }
+.painel h2 { margin: 0 0 6px; font-size: 16px; }
+.painel h3 { margin: 16px 0 8px; font-size: 13px; color: var(--suave); text-transform: uppercase; letter-spacing: .6px; }
+.nota { color: var(--suave); margin: 0 0 12px; }
+.linha { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 8px 0; }
+.linha input[type="number"], .linha select { width: 160px; }
+
+.form-regra { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.form-regra input[name="alvo"], .form-regra button { grid-column: span 2; }
+.form-regra label { display: flex; align-items: center; gap: 6px; }
+.form-regra.tipo-item .so-poke, .form-regra.tipo-pokemon .so-item { display: none; }
+
+.lista-regras { display: flex; flex-direction: column; gap: 6px; }
+.regra {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  background: var(--painel-2);
+  border: 1px solid var(--borda);
+  border-radius: 6px;
+}
+.regra .desc { flex: 1; }
+.regra .desc small { display: block; color: var(--suave); }
+.regra.pausada { opacity: .55; }
+
+.painel-log { display: flex; flex-direction: column; }
+.cabecalho-log { display: flex; justify-content: space-between; align-items: center; }
+.log { flex: 1; overflow: auto; font-family: Consolas, monospace; font-size: 12px; }
+.log .item { padding: 3px 0; border-bottom: 1px solid #23273a; }
+.log .hora { color: var(--suave); margin-right: 6px; }
+.log .conta-log { color: var(--destaque); margin-right: 6px; }
+.log .disparo { color: #7fb4ff; }
+.log .comprado { color: var(--ok); }
+.log .recusado, .log .erro { color: var(--erro); }
+.log .aviso { color: var(--aviso); }
+.vazio { color: var(--suave); }
+
+.lista-lives { display: flex; flex-direction: column; gap: 6px; }
+.live {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--painel-2);
+  border: 1px solid var(--borda);
+  border-radius: 6px;
+}
+.live.no-ar { border-color: var(--ok); }
+.live .plataforma { font-weight: 700; font-size: 11px; color: var(--twitch); }
+.live .plataforma.kick { color: var(--kick); }
+.live .nome-canal { flex: 1; font-weight: 600; }
+.live .estado { font-size: 11px; color: var(--suave); }
+.live.no-ar .estado { color: var(--ok); }
+.live select { padding: 2px 4px; }
+.live.barra-abrir { flex-wrap: wrap; }
+
+.bonus-contas { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.bonus-contas .cartao { padding: 8px 10px; background: var(--painel-2); border: 1px solid var(--borda); border-radius: 6px; }
+.bonus-contas .cartao small { display: block; color: var(--suave); }
+
+.painel-player { display: flex; flex-direction: column; }
+.players { flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); grid-auto-rows: minmax(260px, 1fr); gap: 8px; min-height: 0; }
+.player { display: flex; flex-direction: column; border: 1px solid var(--borda); border-radius: 6px; overflow: hidden; }
+.player .barra-conta { justify-content: space-between; }
+.player webview { flex: 1; }
+.bonus-contas .acoes-login { display: flex; gap: 6px; margin-top: 6px; }
+.bonus-contas .acoes-login button { padding: 2px 8px; font-size: 12px; }
+
+.painel-config { height: 100%; }
+.config-contas { display: grid; grid-template-columns: repeat(auto-fit, minmax(520px, 1fr)); gap: 10px; }
+.cartao-config { background: var(--painel-2); border: 1px solid var(--borda); border-radius: 8px; padding: 10px 12px; }
+.cartao-config .titulo-conta { display: flex; align-items: center; gap: 10px; font-weight: 700; margin-bottom: 8px; }
+.linha-login { display: grid; grid-template-columns: 70px 1fr 1fr auto auto auto auto; gap: 6px; align-items: center; margin: 6px 0; }
+.linha-login .aviso-login { grid-column: 2 / -1; color: var(--suave); }
+.linha-login .aviso-login:empty { display: none; }
+.servico { font-weight: 700; font-size: 12px; }
+.servico.pokeidle { color: var(--destaque); }
+.servico.twitch { color: var(--twitch); }
+.servico.kick { color: var(--kick); }
+
+/* ---------------------------------------------------------------- Dashboard */
+img.ico, img.ico-kpi, img.ico-drop, .marca .logo, .cena .sprite { image-rendering: pixelated; flex: none; }
+.marca { display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 600; letter-spacing: -.2px; }
+.marca .logo { width: 22px; height: 22px; }
+img.ico { width: 16px; height: 16px; vertical-align: -3px; }
+
+#mutar-lives.ativa { border-color: var(--erro); }
+button { transition: transform 120ms var(--ease-out), background-color 150ms ease, border-color 150ms ease; }
+button:active { transform: scale(0.97); }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--destaque); outline-offset: 2px; }
+button.redondo { width: 32px; height: 32px; padding: 0; border-radius: 50%; display: grid; place-items: center; font-size: 15px; flex: none; }
+
+/* Dashboard: os 4 cartões dividem a tela em 2×2 e cada um se ajusta à altura disponível.
+   A cena do pokémon é o que cresce; o resto tem altura fixa e enxuta. Abaixo de ~700 px rola. */
+.dashboard { height: 100%; overflow: auto; }
+.cartoes-contas { height: 100%; min-height: 660px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 12px; }
+.cartao-dash {
+  display: flex; flex-direction: column; gap: 8px; padding: 12px; min-height: 0; min-width: 0;
+  background: var(--painel); border: 1px solid var(--borda); border-radius: 20px;
+}
+.cartao-dash.off { opacity: .55; }
+
+.dash-topo { display: flex; align-items: center; gap: 10px; flex: none; }
+.avatar {
+  width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; flex: none;
+  font: 700 15px var(--fonte); color: var(--texto); background: var(--painel-3); border: 1px solid var(--borda-forte);
+}
+.dash-nome { flex: 1; display: flex; align-items: center; gap: 10px; min-width: 0; }
+.dash-nome b { font: 600 17px/1 var(--fonte); letter-spacing: -.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.selos { display: flex; gap: 5px; flex-wrap: nowrap; min-width: 0; overflow: hidden; }
+.status, .selo-nv { font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--borda-forte); color: var(--suave); white-space: nowrap; }
+.status.on { color: var(--texto); }
+.status.on::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; background: var(--destaque); }
+.status.off { color: var(--erro); border-color: #5a2a26; }
+.saldos { display: flex; gap: 14px; flex: none; margin-right: 4px; }
+.pilula { display: inline-flex; align-items: center; gap: 6px; color: var(--texto); font: 600 15px var(--fonte); letter-spacing: -.2px; }
+.pilula img.ico { width: 16px; height: 16px; }
+
+.dash-corpo { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(150px, 40%) 1fr; gap: 10px; }
+/* A cena: palco escuro com um brilho verde no chão, o sprite do jogo no centro. */
+.cena {
+  position: relative; min-height: 0; border-radius: 16px; overflow: hidden; display: grid; place-items: center;
+  background:
+    radial-gradient(42% 12% at 50% 78%, #d4f55a2e, transparent 75%),
+    radial-gradient(70% 55% at 50% 100%, #d4f55a12, transparent 70%),
+    linear-gradient(180deg, #1c1d20, #141517);
+  border: 1px solid var(--borda);
+}
+.cena.shiny { border-color: var(--destaque); }
+.cena.shiny::after { content: '✨'; position: absolute; top: 8px; right: 10px; font-size: 15px; }
+.cena .sprite { height: 72%; max-width: 86%; object-fit: contain; image-rendering: pixelated; margin-bottom: 10%; filter: drop-shadow(0 6px 6px #0009); }
+.cena .sem-sprite { color: var(--suave); font: 300 28px var(--fonte); }
+.cena-hunt, .cena-tempo { position: absolute; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font: 600 11.5px var(--fonte); }
+.cena-hunt { left: 8px; right: 8px; bottom: 8px; justify-content: center; padding: 4px 10px; border-radius: 999px; background: #0f1011d9; border: 1px solid var(--borda); color: var(--texto); }
+.cena-tempo { left: 8px; top: 8px; padding: 2px 9px; border-radius: 999px; background: #0f1011b3; color: var(--suave); }
+
+.dash-info { display: flex; flex-direction: column; gap: 8px; min-width: 0; min-height: 0; }
+.pk-linha { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 2px 2px 0; }
+.pk-nome { font: 600 21px/1.1 var(--fonte); letter-spacing: -.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pk-nv { color: var(--suave); font: 600 13px var(--fonte); white-space: nowrap; }
+.hp { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; color: var(--suave); font-size: 11px; font-weight: 600; padding: 0 2px; }
+.hp .barra { height: 6px; border-radius: 999px; background: var(--painel-3); overflow: hidden; }
+.hp .cheio { height: 100%; border-radius: 999px; background: var(--destaque); transition: width .4s var(--ease-out); }
+.hp .cheio.baixo { background: var(--erro); }
+
+/* As 4 caixas dividem o que sobra da altura, em 2×2. Número grande e fino, rótulo pequeno em cima. */
+.dash-taxas { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: minmax(0, 1fr); gap: 8px; }
+.kpi {
+  display: flex; align-items: center; gap: 10px; min-width: 0; min-height: 0; padding: 8px 12px;
+  background: var(--painel-2); border-radius: 14px;
+}
+.kpi .ico-kpi { width: 30px; height: 30px; padding: 6px; border-radius: 50%; background: var(--painel-3); object-fit: contain; }
+.kpi-txt { display: flex; flex-direction: column; min-width: 0; }
+.kpi small { color: var(--suave); font-size: 11px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kpi b { font: 300 23px/1.15 var(--fonte); letter-spacing: -.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kpi b small { font-size: 13px; font-weight: 500; letter-spacing: 0; margin-left: 1px; }
+.kpi.alerta b { color: var(--erro); }
+.kpi-extra { font-size: 11px; color: var(--suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kpi-extra .acabando { color: var(--erro); }
+
+.dash-drops { flex: none; display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+.mini { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 4px; background: var(--painel-2); border: 1px solid transparent; border-radius: 10px; }
+.mini .ico-drop { width: 18px; height: 18px; object-fit: contain; opacity: .35; }
+.mini b { font: 600 13px var(--fonte); color: var(--suave); }
+.mini.tem { border-color: var(--borda-forte); }
+.mini.tem .ico-drop { opacity: 1; }
+.mini.tem b { color: var(--texto); }
+.mini.shiny { border-color: var(--destaque); }
+
+.dash-sniper { flex: none; display: flex; align-items: center; gap: 10px; padding: 0 2px; font-size: 12px; }
+.dash-sniper button { padding: 3px 12px; border-radius: 999px; font-size: 12px; }
+.sniper-mini { display: inline-flex; align-items: center; gap: 6px; color: var(--suave); white-space: nowrap; font-weight: 600; }
+.sniper-mini.on { color: var(--texto); }
+.sniper-mini img { width: 15px; height: 15px; }
+.dash-ultimo { flex: 1; min-width: 0; color: var(--suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dash-ultimo.comprado { color: var(--ok); }
+.dash-ultimo.recusado { color: var(--erro); }
+.dash-ultimo.disparo { color: var(--texto); }
+
+@media (prefers-reduced-motion: reduce) {
+  button, .hp .cheio { transition: none; }
+  button:active { transform: none; }
+}
+
+/* Faixa de buffs (a "Sessão" do jogo) */
+.dash-buffs { flex: none; display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; overflow: hidden; min-height: 26px; }
+.buff-xp { display: inline-flex; align-items: baseline; gap: 5px; padding: 3px 12px; border-radius: 999px; background: var(--destaque); color: #2b3310; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.buff-xp b { color: #15170d; font: 700 15px var(--fonte); }
+.buff-xp small { color: #3d4818; font-weight: 600; }
+.buff { display: inline-flex; align-items: center; gap: 6px; padding: 3px 11px 3px 4px; border-radius: 999px; background: var(--painel-2); border: 1px solid var(--borda); font-size: 12px; font-weight: 600; white-space: nowrap; }
+.buff b { font-weight: 700; }
+.buff small { color: var(--suave); }
+.buff .ico-buff { width: 18px; height: 18px; image-rendering: pixelated; object-fit: contain; }
+.buff.vip { color: var(--texto); }
+.buff .glifo { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; font: 800 10px var(--fonte); color: #fff; }
+.buff.twitch .glifo { background: #9146ff; }
+.buff.kick .glifo { background: #2a8a0f; }
+.sem-buff { color: var(--suave); font-size: 12px; }
+
+/* Seletor de itens do RMT */
+.escolha-item { grid-column: span 2; display: flex; align-items: center; gap: 8px; }
+.form-regra.tipo-pokemon .escolha-item.so-item, .form-regra.tipo-item .escolha-item.so-poke { display: none; }
+.item-escolhido { color: var(--suave); font-size: 12px; }
+.chip-item { display: inline-flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 999px; background: #23261a; border: 1px solid var(--destaque); color: var(--destaque); }
+.chip-item img, .ico-regra { width: 22px; height: 22px; image-rendering: pixelated; object-fit: contain; }
+.modal { position: fixed; inset: 0; z-index: 50; background: #000a; display: grid; place-items: center; }
+.modal[hidden] { display: none; }
+.modal-caixa { width: min(1000px, 92vw); height: min(720px, 88vh); display: flex; flex-direction: column; gap: 10px; padding: 14px; background: var(--painel); border: 2px solid var(--borda-forte); border-radius: 12px; box-shadow: 0 10px 40px #000c; }
+.modal-topo { display: flex; align-items: center; gap: 10px; }
+.modal-topo h2 { margin: 0; font: 400 26px var(--pixel); }
+.modal-topo input { flex: 1; }
+.catalogo-abas { display: flex; flex-wrap: wrap; gap: 6px; }
+.catalogo-abas button.ativa { border-color: var(--destaque); color: var(--destaque); background: #23261a; }
+.catalogo-grade { flex: 1; overflow: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); grid-auto-rows: min-content; gap: 6px; }
+.item-rmt { display: flex; align-items: center; gap: 8px; padding: 6px 8px; text-align: left; background: var(--painel-2); }
+.item-rmt:hover { border-color: var(--destaque); background: #23261a; }
+.item-rmt img { width: 32px; height: 32px; image-rendering: pixelated; object-fit: contain; flex: none; }
+.item-rmt span { font-size: 12px; line-height: 1.2; }
+.item-rmt .sem-icone { width: 32px; text-align: center; color: var(--suave); }
+.kpi-extra { font-size: 10.5px; color: var(--suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kpi-extra .acabando { color: var(--erro); }
+.kpi.alerta b { color: var(--texto); }
+
+/* Filtros da regra de pokémon (os mesmos do Mercado do jogo) */
+.grupo-filtro { grid-column: span 2; margin: 0; padding: 6px 10px 8px; border: 1px solid var(--borda); border-radius: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 5px 10px; }
+.grupo-filtro legend { padding: 0 6px; color: var(--suave); font-size: 11px; text-transform: uppercase; letter-spacing: .6px; }
+.grupo-filtro label { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.form-regra.tipo-item .grupo-filtro { display: none; }
+.faixas { grid-template-columns: 80px 1fr 12px 1fr; align-items: center; }
+.faixas span { font-size: 12px; color: var(--suave); text-transform: uppercase; }
+.faixas i { text-align: center; color: var(--suave); font-style: normal; }
+.faixas input { width: 100%; text-align: center; }
+.tag { font-size: 9px; padding: 0 4px; border-radius: 3px; color: var(--bg); }
+.tag.p5 { background: #f5c542; }
+.tag.tm { background: #5a9cff; color: #fff; }
+.tag.aoe { background: #9a6bff; color: #fff; }
+.especies-grade { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); }
+.item-rmt.especie { flex-direction: column; justify-content: center; text-align: center; gap: 2px; min-height: 92px; }
+.item-rmt.especie img { width: 56px; height: 56px; }
+.item-rmt.especie small { display: block; color: var(--suave); font-size: 10px; }
+.item-rmt.especie.lendario { border-color: #b8891c; }
+img.sem-sprite-img { opacity: .15; }
+.chip-sprite { width: 26px; height: 26px; image-rendering: pixelated; object-fit: contain; }
+.botoes-regra { grid-column: span 2; display: grid; grid-template-columns: auto 1fr; gap: 6px; }
+.botoes-regra button { grid-column: auto; }
+
+.mutar-jogos { margin-left: auto; padding: 3px 10px; font-size: 12px; }
+.mutar-jogos.ativa, .barra-conta button.ativa { border-color: var(--erro); }
+.topo .resumo { margin-left: 10px; }
+
+/* Sorteios */
+.placar { font: 400 12px "Segoe UI", sans-serif; color: var(--suave); margin-left: 8px; }
+.sorteios { max-height: 38%; overflow: auto; margin-bottom: 10px; font-size: 12px; }
+.linha-sorteio { display: grid; grid-template-columns: 64px 70px 1fr 120px 60px 92px; gap: 6px; align-items: center; padding: 4px 6px; border-bottom: 1px solid var(--painel-3); }
+.linha-sorteio .hora, .linha-sorteio .tipo { color: var(--suave); }
+.linha-sorteio .nome { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.linha-sorteio .resultado { text-align: right; }
+.linha-sorteio.ganhou .resultado { color: var(--ok); }
+.linha-sorteio.perdeu .resultado, .linha-sorteio.recusado .resultado { color: var(--erro); }
+.linha-sorteio.sem-resposta .resultado, .linha-sorteio.aguardando .resultado { color: var(--aviso); }
+
+/* Mercado */
+.painel-mercado { height: 100%; display: flex; flex-direction: column; }
+.acoes-mercado { display: flex; gap: 8px; }
+.linha.curta { justify-content: flex-start; }
+.mercado-tabela { flex: 1; overflow: auto; }
+.mercado-tabela table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.mercado-tabela th { position: sticky; top: 0; background: var(--painel); text-align: right; padding: 6px 8px; color: var(--suave); font-weight: 600; border-bottom: 1px solid var(--borda); }
+.mercado-tabela th:first-child, .mercado-tabela td.item { text-align: left; }
+.mercado-tabela td { text-align: right; padding: 5px 8px; border-bottom: 1px solid var(--painel-3); white-space: nowrap; }
+.mercado-tabela td.item { display: flex; align-items: center; gap: 8px; }
+.mercado-tabela td.item img { width: 26px; height: 26px; image-rendering: pixelated; object-fit: contain; }
+.mercado-tabela td.item small { color: var(--suave); }
+.mercado-tabela td.calc { font-weight: 700; }
+/* Estados do preço: sem oferta, não lido, desatualizado e a hora da leitura ficam discretos. */
+.mercado-tabela td.sem-dado, .mercado-tabela td.desatualizado, .mercado-tabela td.quando { color: var(--suave); font-style: italic; }
+.mercado-tabela td.desatualizado small { font-style: normal; }
+.mercado-tabela td.quando { font-size: 12px; }
+.mercado-tabela tr.nao-lido td.item { color: var(--suave); }
+.painel-mercado .mercado-tabela { min-height: 240px; }
+.nota.legenda { font-size: 12px; margin-top: -6px; }
+
+/* Seções de baixo da aba Mercado: mercado nas últimas 24 h e histórico de compras. */
+.mercado-secao { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--borda); }
+.mercado-secao .cabecalho-log h2 { margin: 0 0 8px; font-size: 15px; }
+.colunas-mercado { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.colunas-mercado h3 { margin: 0 0 6px; font-size: 12px; }
+.hg-lista, .hist-lista { max-height: 300px; overflow: auto; font-size: 12px; }
+.hg-linha { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: 8px; padding: 4px 6px; border-bottom: 1px solid var(--painel-3); align-items: center; }
+.hg-linha.top { grid-template-columns: minmax(0, 1fr) auto auto auto; }
+.hg-linha .hora, .hg-linha .media { color: var(--suave); }
+.hg-linha .nome { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hg-linha small { color: var(--suave); }
+.hg-linha b { white-space: nowrap; }
+.filtros-historico { display: flex; flex-direction: column; gap: 6px; margin-bottom: 6px; }
+.totais-historico { margin: 4px 0 8px; }
+.totais-historico b { color: var(--destaque); }
+.totais-historico small { color: var(--suave); }
+.hist-linha { display: grid; grid-template-columns: 92px 64px minmax(0, 1fr) 110px 120px 110px; gap: 6px; align-items: center; padding: 4px 6px; border-bottom: 1px solid var(--painel-3); }
+.hist-linha .hora, .hist-linha .conta-log { color: var(--suave); }
+.hist-linha .nome { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hist-linha .nome small { color: var(--suave); }
+.hist-linha .resultado { text-align: right; }
+.hist-linha.ganhou .resultado { color: var(--ok); }
+.hist-linha.perdeu .resultado, .hist-linha.recusado .resultado { color: var(--erro); }
+.hist-linha.sem-resposta .resultado { color: var(--aviso); }
+.hist-rodape { text-align: center; padding-top: 6px; }
+.mercado-tabela tr.destaque td { background: #23261a; }
+.mercado-tabela tr.destaque td.calc:nth-child(4) { color: var(--destaque); }
+
+/* Filtro por conta */
+.filtro-conta { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+.filtro-conta .rotulo { color: var(--suave); font-size: 12px; }
+.filtro-conta button { padding: 2px 10px; font-size: 12px; }
+.filtro-conta button.ativa { border-color: var(--destaque); color: var(--destaque); background: #23261a; }
+.so-conta-0 > [data-conta]:not([data-conta="0"]) { display: none; }
+.so-conta-1 > [data-conta]:not([data-conta="1"]) { display: none; }
+.so-conta-2 > [data-conta]:not([data-conta="2"]) { display: none; }
+.so-conta-3 > [data-conta]:not([data-conta="3"]) { display: none; }
+
+/* Modo de preço e edição de regra */
+.form-regra.tipo-pokemon .modo-preco { display: none; }
+.campos-media { grid-column: span 2; display: none; grid-template-columns: 1fr 1fr 1fr; gap: 6px 10px; }
+.form-regra.modo-media .campos-media { display: grid; }
+.campos-media label { display: flex; flex-direction: column; align-items: stretch; gap: 3px; font-size: 12px; color: var(--suave); }
+.campos-media small { grid-column: span 3; color: var(--suave); font-size: 11px; }
+.botoes-regra { grid-template-columns: auto 1fr auto; }
+.regra.em-edicao { border-color: var(--destaque); background: #23261a; }
+.mercado-tabela td.barato { color: var(--ok); font-weight: 700; }
+.form-regra.tipo-item .grupo-filtro.modo-preco { display: grid; }
+
+/* Sugestões para aprovar */
+.campos-media .linha-check { grid-column: span 3; flex-direction: row; align-items: center; gap: 6px; color: var(--texto); font-size: 13px; }
+.sugestoes { max-height: 32%; overflow: auto; margin-bottom: 10px; display: flex; flex-direction: column; gap: 6px; }
+.sugestao { display: grid; grid-template-columns: 34px 1fr auto auto auto; gap: 10px; align-items: center; padding: 6px 8px; background: #23261a; border: 1px solid var(--destaque); border-radius: 8px; }
+.sugestao img { width: 32px; height: 32px; image-rendering: pixelated; object-fit: contain; }
+.sugestao .desc { display: flex; flex-direction: column; min-width: 0; }
+.sugestao .desc small, .preco-sug small { color: var(--suave); font-size: 11px; }
+.preco-sug { display: flex; flex-direction: column; align-items: flex-end; }
+.preco-sug .muito-barato { color: var(--ok); font-weight: 700; }
+.sugestao .comprar { border-color: var(--ok); color: var(--ok); font-weight: 700; }
+
+.auto-live { display: grid; grid-template-columns: 1fr 140px; gap: 6px 10px; align-items: center; margin: 8px 0 12px; padding: 8px 10px; border: 1px solid var(--borda); border-radius: 8px; }
+.auto-live label { display: flex; align-items: center; gap: 6px; }
+.auto-live small { grid-column: span 2; color: var(--suave); font-size: 11px; }
+
+/* Radar de ofertas (aba Mercado) */
+.barra-radar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 4px 0 10px; padding: 8px 10px; border: 1px solid var(--borda-forte); border-radius: 8px; background: var(--painel-2); }
+.barra-radar label { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.barra-radar input[type="number"] { width: 64px; padding: 3px 6px; }
+.barra-radar small { width: 100%; margin: 0; }
+.painel-mercado .sugestoes { max-height: 34%; }
+
+/* Live da Twitch com o chat ao lado (é o chat que conta para o bônus) */
+.player.com-chat { display: grid; grid-template-columns: 1fr 230px; grid-template-rows: auto 1fr; }
+.player.com-chat .barra-conta { grid-column: span 2; }
+.player.com-chat webview { min-height: 0; height: 100%; }
+.bonus-contas .cartao.alerta-twitch { border-color: var(--erro); }
+.aviso-twitch { color: var(--erro) !important; margin-top: 4px; }
+
+#lv-qualidade { width: 230px; }
+
+.linha-navegador { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 8px; margin: 4px 0 8px; font-size: 12px; color: var(--suave); }
+.sel-navegador { min-width: 0; }
+
+
+.buff .efeito { color: var(--destaque); font-weight: 700; font-size: 12px; }
+
+/* Aba Hunts */
+#hunts-busca { width: 160px; }
+.mercado-tabela td.item .ico-hunt { width: 28px; height: 28px; image-rendering: pixelated; object-fit: contain; }
+.mercado-tabela tr.atual td { box-shadow: inset 0 0 0 9999px #24301f; }
+.mercado-tabela tr.atual td.item small { color: var(--ok); }
+.vant { display: inline-block; min-width: 46px; padding: 1px 6px; border-radius: 6px; font-weight: 700; font-size: 12px; text-align: center; background: var(--painel-2); }
+.vant.forte { color: var(--bg); background: var(--ok); }
+.vant.boa { color: var(--ok); }
+.vant.neutra { color: var(--suave); }
+.vant.fraca { color: var(--aviso); }
+.vant.imune { color: var(--erro); }
+
+/* Hunts: pokémon escolhido e caminho de up */
+#hunts-pokemon { max-width: 330px; }
+.sem-sprite-hunt { display: inline-grid; place-items: center; width: 28px; height: 28px; color: var(--suave); }
+.hunts-caminho { margin-bottom: 10px; }
+.titulo-caminho { font: 400 22px var(--pixel); margin-bottom: 6px; }
+.passos { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.passo { display: flex; flex-direction: column; gap: 5px; padding: 8px 10px; background: var(--painel-2); border: 1px solid var(--borda); border-radius: 9px; min-width: 0; }
+.passo.agora { border-color: var(--ok); background: #1f2b1d; }
+.titulo-passo { color: var(--suave); text-transform: uppercase; letter-spacing: .5px; font-size: 10px; }
+.passo.agora .titulo-passo { color: var(--ok); }
+.passo-hunt { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.passo-hunt b { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.passo-hunt small { color: var(--suave); }
+.ico-passo { width: 40px; height: 40px; image-rendering: pixelated; object-fit: contain; flex: none; }
+.passo-num { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-weight: 700; }
+.requisito { color: var(--aviso); font-size: 11px; }
+
+/* Selos de buff agrupados e a dica com a lista detalhada */
+.buff.grupo { cursor: help; }
+.buff.grupo::after { content: '▾'; color: var(--suave); font-size: 10px; }
+.dica-buff { position: fixed; z-index: 1000; display: none; min-width: 230px; padding: 10px 12px; border-radius: 14px;
+  background: var(--painel-2); border: 1px solid var(--borda-forte); box-shadow: 0 12px 28px #000c; font-size: 12px; pointer-events: none; }
+.dica-buff > b { display: block; margin-bottom: 6px; color: var(--texto); font-weight: 700; }
+.dica-buff .linha { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; padding: 3px 0; white-space: nowrap; }
+.dica-buff .linha b { color: var(--destaque); }
+.dica-buff .linha small { color: var(--suave); min-width: 42px; text-align: right; }
+
+.buff-xp.tem-dica { cursor: help; }
+
+/* Sem bônus de XP (ou ainda sem dados): a pílula fica neutra; o verde-limão é só para quando há bônus. */
+.buff-xp.neutro { background: var(--painel-2); border: 1px solid var(--borda); color: var(--suave); }
+.buff-xp.neutro b { color: var(--texto); }
+
+/* Janela sem moldura: cantos arredondados e o topo como barra de arrastar. */
+/* O fundo fica numa camada própria: a cor de fundo do body "vaza" para a janela inteira (regra do CSS)
+   e pintava os cantos de fora do arredondamento. */
+body { background: transparent; border-radius: 12px; border: 0; overflow: hidden; }
+body::before { content: ""; position: fixed; inset: 0; z-index: -1; border-radius: 12px; background: var(--bg); pointer-events: none; }
+/* Contorno fino por cima de tudo (o topo e os painéis não o cobrem), seguindo o canto arredondado. */
+body::after { content: ""; position: fixed; inset: 0; border-radius: 12px; box-shadow: inset 0 0 0 1px #ffffff14; pointer-events: none; z-index: 3000; }
+body.maximizada, body.maximizada::before { border-radius: 0; }
+body.maximizada::after { display: none; }
+.topo { -webkit-app-region: drag; user-select: none; border-radius: 12px 12px 0 0; padding-right: 6px; }
+.topo button, .topo select, .topo input, .topo a { -webkit-app-region: no-drag; }
+main { height: calc(100% - 52px); }
+.janela-botoes { display: flex; gap: 2px; margin-left: 4px; }
+.janela-botoes button { width: 34px; height: 30px; padding: 0; border: 0; border-radius: 8px; background: transparent; display: grid; place-items: center; color: var(--suave); }
+.janela-botoes button:hover { background: var(--painel-3); color: var(--texto); }
+.janela-botoes button.fechar:hover { background: #e5484d; color: #fff; }
+.janela-botoes svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; }
+
+/* Alças de redimensionar: invisíveis, 6 px nas bordas e 14 px nos cantos. Somem com a janela maximizada. */
+.alcas > div { position: fixed; z-index: 2000; -webkit-app-region: no-drag; }
+.alcas [data-lado="n"] { top: 0; left: 14px; right: 14px; height: 6px; cursor: ns-resize; }
+.alcas [data-lado="s"] { bottom: 0; left: 14px; right: 14px; height: 6px; cursor: ns-resize; }
+.alcas [data-lado="e"] { right: 0; top: 14px; bottom: 14px; width: 6px; cursor: ew-resize; }
+.alcas [data-lado="w"] { left: 0; top: 14px; bottom: 14px; width: 6px; cursor: ew-resize; }
+.alcas [data-lado="ne"] { top: 0; right: 0; width: 14px; height: 14px; cursor: nesw-resize; }
+.alcas [data-lado="sw"] { bottom: 0; left: 0; width: 14px; height: 14px; cursor: nesw-resize; }
+.alcas [data-lado="nw"] { top: 0; left: 0; width: 14px; height: 14px; cursor: nwse-resize; }
+.alcas [data-lado="se"] { bottom: 0; right: 0; width: 14px; height: 14px; cursor: nwse-resize; }
+body.maximizada .alcas { display: none; }
+
+/* Aviso de atualização no topo */
+.atualizacao { padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--suave); }
+.atualizacao.pronta { background: var(--destaque); border-color: var(--destaque); color: #15170d; }
+.atualizacao:disabled { cursor: default; opacity: 1; }
+
+/* Config: quadro de atualizações */
+.config-atualizacao { display: flex; align-items: center; gap: 16px; margin-top: 14px; padding: 14px 16px; border-radius: 16px; background: var(--painel-2); border: 1px solid var(--borda); }
+.config-atualizacao > div { flex: 1; min-width: 0; }
+.config-atualizacao h3 { margin: 0 0 4px; font-size: 14px; }
+.config-atualizacao p { margin: 0; }
+#estado-atualizacao.ok { color: var(--ok); }
+#estado-atualizacao.erro { color: var(--erro); }
+
+/* Config: painel no celular */
+.config-celular { margin-top: 14px; padding: 14px 16px; border-radius: 16px; background: var(--painel-2); border: 1px solid var(--borda); }
+.celular-cabeca { display: flex; align-items: flex-start; gap: 16px; }
+.celular-cabeca > div { flex: 1; min-width: 0; }
+.config-celular h3 { margin: 0 0 6px; font-size: 14px; }
+.config-celular p { margin: 0 0 6px; }
+.config-celular .aviso-celular { color: var(--texto); }
+.celular-corpo { display: flex; align-items: center; gap: 16px; margin-top: 12px; flex-wrap: wrap; }
+.celular-dados { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.celular-endereco { font: 600 15px var(--fonte); word-break: break-all; user-select: text; }
+.celular-acoes { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.celular-acoes #celular-status { margin: 0; }
+#celular-status.erro { color: var(--erro); }
+.celular-qr { flex: none; width: 148px; height: 148px; padding: 6px; border-radius: 12px; background: #fff; }
+.celular-qr[hidden] { display: none; }
+
+.selo[hidden] { display: none; }
+
+/* Aba Captura: um cartão por conta, no mesmo 2×2 do Dashboard */
+.captura { height: 100%; display: flex; flex-direction: column; gap: 12px; }
+.captura-topo { display: flex; align-items: baseline; gap: 14px; padding: 2px 4px 0; flex-wrap: wrap; }
+.captura-topo h2 { margin: 0; font: 700 20px var(--fonte); letter-spacing: -.3px; }
+.captura-topo p { margin: 0; color: var(--suave); font-size: 13px; }
+.captura-grade { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 12px; overflow: auto; }
+.cap { display: flex; flex-direction: column; gap: 14px; padding: 16px 18px; border-radius: 20px; background: var(--painel); border: 1px solid var(--borda); min-height: 0; }
+.cap.off { opacity: .5; }
+.cap-topo { display: flex; align-items: center; gap: 10px; }
+.cap-topo .avatar { width: 34px; height: 34px; }
+.cap-topo > b { font: 600 17px var(--fonte); }
+.cap-topo .direita { margin-left: auto; display: flex; align-items: center; gap: 10px; color: var(--suave); font-size: 13px; font-weight: 600; }
+button.chave { position: relative; width: 46px; height: 26px; padding: 0; border-radius: 999px; background: var(--painel-3); border: 1px solid var(--borda-forte); flex: none; }
+button.chave::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--suave); transition: transform 160ms var(--ease-out); }
+button.chave.on { background: var(--destaque); border-color: var(--destaque); }
+button.chave.on::after { transform: translateX(20px); background: #15170d; }
+button.chave:active { transform: none; }
+.cap .rotulo { font-size: 12px; font-weight: 600; color: var(--suave); margin-bottom: 7px; }
+.cap .modos { display: inline-flex; gap: 2px; padding: 4px; border-radius: 999px; background: var(--painel-2); border: 1px solid var(--borda); }
+.cap .modos button { padding: 6px 16px; border: 0; border-radius: 999px; background: transparent; font-weight: 600; font-size: 13px; color: var(--suave); }
+.cap .modos button.on { background: var(--texto); color: var(--bg); }
+.cap .bolas { display: flex; flex-wrap: wrap; gap: 8px; }
+.cap button.bola { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 8px; border-radius: 12px; font-size: 13px; font-weight: 600; }
+.cap button.bola img { width: 22px; height: 22px; image-rendering: pixelated; }
+.cap button.bola small { color: var(--suave); font-weight: 600; }
+.cap button.bola.on { border-color: var(--destaque); box-shadow: inset 0 0 0 1px var(--destaque); }
+.cap button.bola.vazia { opacity: .45; }
+.cap-rodape { margin-top: auto; display: flex; align-items: center; flex-wrap: wrap; gap: 0 4px; padding-top: 12px; border-top: 1px solid var(--borda); font-size: 13px; color: var(--suave); }
+.cap-rodape .ponto { width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; background: var(--suave); }
+.cap-rodape b { color: var(--texto); }
+.cap-rodape.lancando { color: var(--texto); }
+.cap-rodape.lancando .ponto { background: var(--destaque); box-shadow: 0 0 0 4px #d4f55a22; }
+.cap-rodape.alerta { color: var(--erro); }
+.cap-rodape.alerta .ponto { background: var(--erro); }
+.aviso-vip { padding: 10px 12px; border-radius: 12px; background: var(--painel-2); font-size: 13px; color: var(--suave); }
+.aviso-vip b { color: var(--texto); }
+
+/* Cartão de novidades depois de atualizar */
+.novidades-fundo { position: fixed; inset: 0; z-index: 2500; display: grid; place-items: center; padding: 24px; background: #0008; border-radius: 12px; }
+.novidades { width: min(560px, 100%); max-height: 80vh; overflow: auto; display: flex; flex-direction: column; gap: 14px; padding: 22px 24px; border-radius: 20px; background: var(--painel); border: 1px solid var(--borda-forte); box-shadow: 0 24px 60px #000c; }
+.novidades-topo { display: flex; flex-direction: column; gap: 4px; }
+.novidades-versao { align-self: flex-start; padding: 2px 10px; border-radius: 999px; background: var(--destaque); color: #15170d; font-size: 12px; font-weight: 700; }
+.novidades h2 { margin: 0; font: 700 22px var(--fonte); letter-spacing: -.3px; }
+.novidades h3 { margin: 4px 0 6px; font-size: 13px; color: var(--suave); }
+.novidades ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.novidades li { display: flex; flex-direction: column; gap: 2px; padding-left: 14px; border-left: 2px solid var(--borda-forte); }
+.novidades li b { font-size: 14px; }
+.novidades li span { color: var(--suave); font-size: 13px; line-height: 1.5; }
+.novidades-ok { align-self: flex-end; padding: 8px 20px; background: var(--destaque); border-color: var(--destaque); color: #15170d; font-weight: 700; }
+.novidades-ok:hover { background: #e0fa7a; border-color: #e0fa7a; }
+
+.cap-rodape b.perdidos { color: var(--erro); }
+
+/* Mercado: só itens raros, por categoria */
+.mercado-filtros { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 10px 0 6px; }
+.mercado-cats { display: flex; flex-wrap: wrap; gap: 6px; }
+.mercado-cats .cat { padding: 4px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 600; color: var(--suave); background: var(--painel-2); }
+.mercado-cats .cat small { color: var(--suave); font-weight: 600; }
+.mercado-cats .cat.on { background: var(--texto); color: var(--bg); border-color: var(--texto); }
+.mercado-cats .cat.on small { color: var(--bg); }
+
+/* Sniper: regra de Diamantes (preço por diamante, teto fixo ou abaixo da média) */
+
+/* Captura: reposição automática */
+.reposicao { display: flex; flex-direction: column; gap: 8px; }
+.reposicao .rotulo { margin-bottom: 0; }
+.rep-linha { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 8px 10px; border-radius: 12px; background: var(--painel-2); border: 1px solid var(--borda); font-size: 13px; }
+.rep-linha.on { border-color: var(--borda-forte); }
+.rep-linha > b { min-width: 42px; }
+.rep-linha label { display: inline-flex; align-items: center; gap: 6px; color: var(--suave); font-weight: 600; font-size: 12.5px; }
+.rep-linha label small { color: var(--suave); }
+.rep-linha .rep-num { width: 74px; padding: 4px 8px; }
+.rep-linha .rep-item { padding: 4px 8px; max-width: 220px; }
+.rep-linha .rep-tem { color: var(--suave); font-size: 12px; min-width: 60px; }
+.rep-linha .rep-info { flex-basis: 100%; color: var(--suave); font-size: 12px; }
+.rep-linha .rep-info.aviso { color: var(--aviso); }
+button.chave.mini { width: 36px; height: 20px; }
+button.chave.mini::after { top: 2px; left: 2px; width: 14px; height: 14px; }
+button.chave.mini.on::after { transform: translateX(16px); }
+
+/* Com a reposição os cartões ficam mais altos: crescem com o conteúdo e a aba rola. */
+.captura-grade { grid-template-rows: none; grid-auto-rows: min-content; align-content: start; }
+.cap { min-height: 0; }
+
+/* Hunts: regiões do mapa do jogo e a ficha da hunt */
+.regioes-hunt { margin: 8px 0 4px; }
+.barra-radar input.nivel-hunt { width: 76px; }
+.mercado-tabela tr.clicavel { cursor: pointer; }
+.mercado-tabela tr.clicavel:hover td { background: var(--painel-2); }
+.mercado-tabela tr.aberta td { background: var(--painel-2); }
+.mercado-tabela tr.ficha-linha > td { padding: 0; background: var(--painel); }
+.ficha-hunt { display: grid; grid-template-columns: minmax(240px, 320px) minmax(0, 1fr); gap: 18px; padding: 14px 16px; border-left: 2px solid var(--destaque); }
+.ficha-col { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ficha-sec { margin-top: 6px; font-size: 12px; font-weight: 700; color: var(--suave); }
+.ficha-tipos { display: flex; flex-wrap: wrap; gap: 5px; }
+.tipo-chip { padding: 2px 9px; border-radius: 999px; background: var(--painel-2); border: 1px solid var(--borda); font-size: 12px; font-weight: 600; text-transform: capitalize; }
+.tipo-chip em { font-style: normal; color: var(--suave); }
+.ficha-tipos.bom .tipo-chip { border-color: #3c6b2a; }
+.ficha-tipos.ruim .tipo-chip { border-color: #6b2a2a; }
+.ficha-especies { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.ficha-especie { padding: 8px 10px; border-radius: 12px; background: var(--painel-2); }
+.ficha-especie-nome { display: flex; align-items: center; gap: 6px; font-weight: 700; margin-bottom: 4px; }
+.ficha-drops { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 2px; font-size: 12.5px; }
+.ficha-drops li { display: flex; justify-content: space-between; gap: 10px; }
+.ficha-drops li span { color: var(--suave); }
+
+/* A ficha herda o alinhamento à direita das colunas de números: volta para a esquerda. */
+.mercado-tabela tr.ficha-linha td, .ficha-hunt, .ficha-hunt td { text-align: left; }
+.ficha-hunt .ficha-col { align-items: stretch; }
+.ficha-hunt .ficha-drops li b { text-align: right; }
+.mercado-tabela tr.ficha-linha td { white-space: normal; }

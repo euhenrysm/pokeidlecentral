@@ -1,0 +1,147 @@
+{
+  "name": "pokeidle-central",
+  "version": "0.3.0",
+  "description": "Central para Windows e Linux: 4 contas do PokéIdle lado a lado, sniper do Mercado da Comunidade e painel de lives. Projeto independente, não oficial.",
+  "main": "src/main.js",
+  "license": "GPL-3.0-only",
+  "author": {
+    "name": "Henrique Ferreira",
+    "email": "noreply@pokeidlecentral.local"
+  },
+  "homepage": "https://github.com/euhenrysm/pokeidlecentral",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/euhenrysm/pokeidlecentral.git"
+  },
+  "scripts": {
+    "start": "electron .",
+    "check": "node --check src/main.js && node --check src/preload-host.js && node --check src/preload-game.js && node --check src/renderer/app.js && node --check src/navegadores.js && node --check src/credenciais.js && node --check src/sessao-navegador.js && node --check src/atualizador.js && node --check src/painel-celular.js && node --test test/*.test.js",
+    "test": "node --test test/*.test.js",
+    "instalador": "electron-builder --win nsis --publish never",
+    "instalador:linux": "electron-builder --linux AppImage deb --publish never",
+    "publicar": "electron-builder --win nsis --publish always",
+    "publicar:linux": "electron-builder --linux AppImage deb --publish always"
+  },
+  "devDependencies": {
+    "@electron/packager": "^18.4.4",
+    "electron": "44.7.2",
+    "electron-builder": "^26.15.3"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9",
+    "qrcode-generator": "^2.0.4"
+  },
+  "build": {
+    "appId": "com.pokeidlecentral.app",
+    "productName": "PokeIdle Central",
+    "copyright": "PokeIdle Central",
+    "files": [
+      "src/**/*",
+      "package.json",
+      "!src/**/*.map"
+    ],
+    "extraFiles": [
+      {
+        "from": "extensao-chrome",
+        "to": "extensao-chrome",
+        "filter": [
+          "manifest.json",
+          "background.js",
+          "content.js"
+        ]
+      },
+      {
+        "from": "LICENSE",
+        "to": "LICENSE"
+      }
+    ],
+    "asar": true,
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "extraFiles": [
+        {
+          "from": "INSTALAR EXTENSAO NO CHROME.bat",
+          "to": "INSTALAR EXTENSAO NO CHROME.bat"
+        },
+        {
+          "from": "LEIA-ME.txt",
+          "to": "LEIA-ME.txt"
+        }
+      ]
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "Game",
+      "artifactName": "PokeIdle-Central-${version}-linux.${ext}",
+      "extraFiles": [
+        {
+          "from": "INSTALAR-EXTENSAO.sh",
+          "to": "INSTALAR-EXTENSAO.sh"
+        },
+        {
+          "from": "LEIA-ME-LINUX.md",
+          "to": "LEIA-ME-LINUX.md"
+        }
+      ]
+    },
+    "deb": {
+      "depends": [
+        "libgtk-3-0",
+        "libnotify4",
+        "libnss3",
+        "libxss1",
+        "libxtst6",
+        "xdg-utils",
+        "libatspi2.0-0",
+        "libuuid1",
+        "libsecret-1-0"
+      ]
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "shortcutName": "PokeIdle Central",
+      "artifactName": "PokeIdle-Central-Setup-${version}.${ext}",
+      "deleteAppDataOnUninstall": false
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "euhenrysm",
+        "repo": "pokeidlecentral",
+        "releaseType": "release"
+      }
+    ],
+    "electronFuses": {
+      "runAsNode": false,
+      "enableNodeOptionsEnvironmentVariable": false,
+      "enableNodeCliInspectArguments": false,
+      "enableEmbeddedAsarIntegrityValidation": true,
+      "onlyLoadAppFromAsar": true
+    }
+  }
+}

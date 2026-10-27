@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://pokeidle.io">
+  <title>PokéIdle Central</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700&display=swap">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topo">
+    <div class="marca"><img class="logo" src="https://pokeidle.io/img/ball-beast.png" alt="">PokéIdle <b>Central</b></div>
+    <nav class="abas">
+      <button data-vista="dashboard">Dashboard</button>
+      <button data-vista="contas" class="ativa">Jogo</button>
+      <button data-vista="sniper">Sniper <span id="selo-sniper" class="selo">off</span></button>
+      <button data-vista="captura">Captura <span id="selo-captura" class="selo on" hidden>0</span></button>
+      <button data-vista="hunts">Hunts</button>
+      <button data-vista="mercado">Mercado <span id="selo-mercado" class="selo on" hidden>0</span></button>
+      <button data-vista="lives">Lives <span id="selo-lives" class="selo">0</span></button>
+      <button data-vista="config">Config</button>
+    </nav>
+    <button id="mutar-jogos" class="mutar-jogos" title="Liga ou desliga o som dos 4 jogos">🔊 Som dos jogos</button>
+    <div id="resumo-contas" class="resumo"></div>
+    <button id="atualizacao" class="atualizacao" hidden></button>
+    <div class="janela-botoes">
+      <button data-janela="minimizar" title="Minimizar" aria-label="Minimizar"><svg viewBox="0 0 12 12"><path d="M2 6h8"/></svg></button>
+      <button data-janela="maximizar" title="Maximizar" aria-label="Maximizar"><svg viewBox="0 0 12 12"><rect x="2.5" y="2.5" width="7" height="7" rx="1.5"/></svg></button>
+      <button data-janela="fechar" class="fechar" title="Fechar" aria-label="Fechar"><svg viewBox="0 0 12 12"><path d="M3 3l6 6M9 3l-6 6"/></svg></button>
+    </div>
+  </header>
+  <div class="alcas" aria-hidden="true">
+    <div data-lado="n"></div><div data-lado="s"></div><div data-lado="e"></div><div data-lado="w"></div>
+    <div data-lado="ne"></div><div data-lado="nw"></div><div data-lado="se"></div><div data-lado="sw"></div>
+  </div>
+
+  <main>
+    <!-- As camadas nunca usam display:none: o jogo de cada conta continua rodando com a aba fora de vista. -->
+    <section id="vista-dashboard" class="vista">
+      <div class="dashboard">
+        <div id="cartoes-contas" class="cartoes-contas"></div>
+      </div>
+    </section>
+
+    <section id="vista-contas" class="vista ativa">
+      <div id="grade" class="grade"></div>
+    </section>
+
+    <section id="vista-sniper" class="vista">
+      <div class="colunas">
+        <div class="painel">
+          <h2>Sniper</h2>
+          <p class="nota">Um sniper por conta, cada um com as suas regras. Um pedido por anúncio, dentro da janela de
+            3 s do sorteio, pelo relógio do servidor. Por padrão, se duas contas acharem o mesmo anúncio, só a primeira dispara.</p>
+
+          <label class="linha">Conta
+            <select id="sn-conta"></select>
+          </label>
+          <label class="linha"><input type="checkbox" id="sn-ativo"> Sniper ligado nesta conta</label>
+          <h3>Todas as contas</h3>
+          <label class="linha">Margem após liberar (ms)
+            <input type="number" id="sn-margem" min="0" max="2500" step="50">
+          </label>
+          <label class="linha">Varredura do mercado (s)
+            <input type="number" id="sn-varredura" min="10" max="120" step="5">
+          </label>
+          <label class="linha"><input type="checkbox" id="sn-mesmo"> Permitir várias contas no mesmo sorteio</label>
+
+          <h3>Nova regra</h3>
+          <form id="form-regra" class="form-regra">
+            <select name="tipo">
+              <option value="item">Item</option>
+              <option value="pokemon">Pokémon</option>
+            </select>
+            <div class="escolha-item so-item">
+              <button type="button" id="abrir-catalogo">Escolher item do RMT…</button>
+              <span id="item-escolhido" class="item-escolhido">nenhum item escolhido</span>
+            </div>
+            <input name="alvo" placeholder="Nome exato (ex.: Water Stone, Dratini)">
+            <input name="itemId" type="number" min="0" placeholder="ID do item (opcional)" class="so-item">
+            <fieldset class="so-item grupo-filtro modo-preco">
+              <legend>Preço</legend>
+              <label><input type="radio" name="modo" value="fixo" checked> Teto fixo</label>
+              <label><input type="radio" name="modo" value="media"> Abaixo da média de 7 dias</label>
+              <div class="so-media campos-media">
+                <label>Desconto mínimo (%)<input name="desconto" type="number" min="1" max="95" value="30"></label>
+                <label>Moeda<select name="moedaMedia">
+                  <option value="orb">Gemas</option><option value="gold">Coins</option><option value="ambas">As duas</option>
+                </select></label>
+                <label>Mín. de vendas na semana<input name="minVendas" type="number" min="0" value="5"></label>
+                <label class="linha-check"><input type="checkbox" name="aprovar" checked> Pedir minha aprovação antes de comprar</label>
+                <small>Compra se o anúncio estiver pelo menos esse % abaixo do preço médio vendido. Sem item escolhido,
+                  vale para qualquer item do RMT. Os tetos abaixo, se preenchidos, continuam como trava.</small>
+              </div>
+            </fieldset>
+            <div class="escolha-item so-poke">
+              <button type="button" id="abrir-especies">Escolher pokémon…</button>
+              <span id="especie-escolhida" class="item-escolhido">qualquer espécie</span>
+              <input type="hidden" name="especieId">
+            </div>
+            <fieldset class="so-poke grupo-filtro">
+              <legend>Raridade</legend>
+              <label><input type="checkbox" name="soShiny"> ✨ Só shiny</label>
+              <label><input type="checkbox" name="soP5"> <b class="tag p5">P5</b> Apenas P5</label>
+              <label><input type="checkbox" name="soMega"> 🧬 Mega Evolução</label>
+              <label><input type="checkbox" name="soLendario"> 👑 Lendários</label>
+              <label><input type="checkbox" name="soTmElemental"> <b class="tag tm">TM</b> Possui TM Elemental</label>
+              <label><input type="checkbox" name="soTmAoe"> <b class="tag aoe">AoE</b> Possui TM AoE</label>
+            </fieldset>
+            <fieldset class="so-poke grupo-filtro">
+              <legend>Espécie</legend>
+              <label><input type="checkbox" name="semOutland" checked> Omitir variantes de Outland</label>
+            </fieldset>
+            <fieldset class="so-poke grupo-filtro faixas">
+              <legend>Faixas</legend>
+              <span>Nível</span><input name="nivelMin" type="number" min="1" placeholder="mín"><i>–</i><input name="nivelMax" type="number" min="1" placeholder="máx">
+              <span>Potência</span><input name="potenciaMin" type="number" min="1" max="5" placeholder="mín"><i>–</i><input name="potenciaMax" type="number" min="1" max="5" placeholder="máx">
+              <span>IV total</span><input name="ivMin" type="number" min="6" max="192" placeholder="mín"><i>–</i><input name="ivMax" type="number" min="6" max="192" placeholder="máx">
+              <span>Qualidade</span><input name="qualidadeMin" inputmode="decimal" placeholder="mín"><i>–</i><input name="qualidadeMax" inputmode="decimal" placeholder="máx">
+              <span>Nota</span><input name="notaMin" inputmode="decimal" placeholder="mín"><i>–</i><input name="notaMax" inputmode="decimal" placeholder="máx">
+            </fieldset>
+            <input name="maxGold" type="number" min="0" placeholder="Teto em Coins (0 = não compra)">
+            <input name="maxGemas" type="number" min="0" placeholder="Teto em Gemas (0 = não compra)">
+            <input name="maxQtd" type="number" min="0" placeholder="Limite de unidades (0 = sem limite)">
+            <div class="botoes-regra">
+              <button type="button" id="limpar-filtros" class="discreto">Limpar filtros</button>
+              <button type="submit" id="salvar-regra">Adicionar regra</button>
+              <button type="button" id="cancelar-edicao" class="discreto" hidden>Cancelar edição</button>
+            </div>
+          </form>
+
+          <h3>Regras desta conta</h3>
+          <div id="lista-regras" class="lista-regras"></div>
+        </div>
+
+        <div class="painel painel-log">
+          <div id="filtro-conta" class="filtro-conta"></div>
+          <div class="cabecalho-log">
+            <h2>Sorteios <small id="placar-sorteios" class="placar"></small></h2>
+            <button id="limpar-sorteios" class="discreto">Limpar</button>
+          </div>
+          <div id="sorteios" class="sorteios"><p class="vazio">Nenhum disparo ainda.</p></div>
+          <div class="cabecalho-log">
+            <h2>Registro</h2>
+            <button id="limpar-log" class="discreto">Limpar</button>
+          </div>
+          <div id="log" class="log"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="vista-captura" class="vista">
+      <div class="captura">
+        <div class="captura-topo">
+          <h2>Lançar bolas</h2>
+          <p>Uma bola em cada pokémon derrotado, enquanto ele está caído no chão, como se você clicasse. Funciona com o app minimizado, em qualquer aba.</p>
+        </div>
+        <div id="captura-grade" class="captura-grade"></div>
+      </div>
+    </section>
+
+    <section id="vista-hunts" class="vista">
+      <div class="painel painel-mercado">
+        <div class="cabecalho-log">
+          <h2>Onde caçar</h2>
+          <div class="acoes-mercado">
+            <select id="hunts-conta"></select>
+            <select id="hunts-pokemon" title="O pokémon que vai caçar: a vantagem, o risco e o caminho são calculados para ele"></select>
+            <button id="hunts-atualizar">Atualizar</button>
+          </div>
+        </div>
+        <p class="nota">XP/h, ouro/h e abates/h saem do Hunt Analyser do próprio jogo (o mesmo do Mapa), com os boosts
+          da conta. Escolha ao lado o pokémon que vai caçar: a <b>vantagem</b> (efetividade amplificada da hunt contra as
+          espécies dela), o <b>risco</b> (hunt acima de 125% do nível dele) e o <b>caminho de up</b> são calculados para ele.
+          Com "ajustar ao meu ritmo", os números são corrigidos pelos abates/h reais da hunt em que a conta está.
+          <b>Clique numa hunt</b> para ver a ficha: fraquezas e resistências do pokémon principal e os drops com a chance de cada um.</p>
+        <div class="barra-radar">
+          <label>Ordenar por <select id="hunts-ordem">
+            <option value="xpTrH">XP do treinador/h</option><option value="xpPkH">XP do pokémon/h</option>
+            <option value="goldH">Ouro/h</option><option value="vantagem">Vantagem de tipo</option></select></label>
+          <label>Nível <input id="hunts-nivel-min" type="number" min="1" placeholder="mín" class="nivel-hunt"> – <input id="hunts-nivel-max" type="number" min="1" placeholder="máx" class="nivel-hunt"></label>
+          <label><input type="checkbox" id="hunts-liberadas" checked> Só liberadas</label>
+          <label><input type="checkbox" id="hunts-ritmo" checked> Ajustar ao meu ritmo</label>
+          <label><input type="checkbox" id="hunts-sem-risco"> Esconder hunts com risco</label>
+          <input id="hunts-busca" placeholder="Buscar hunt…" autocomplete="off">
+          <small id="hunts-info" class="nota"></small>
+        </div>
+        <div id="hunts-regioes" class="mercado-cats regioes-hunt" role="group" aria-label="Regiões"></div>
+        <div id="hunts-caminho" class="hunts-caminho"></div>
+        <div id="hunts-tabela" class="mercado-tabela"><p class="vazio">Escolha uma conta conectada e clique em Atualizar.</p></div>
+      </div>
+    </section>
+
+    <section id="vista-mercado" class="vista">
+      <div class="painel painel-mercado">
+        <div class="cabecalho-log">
+          <h2>Preços do RMT</h2>
+          <div class="acoes-mercado">
+            <select id="mercado-conta"></select>
+            <button id="mercado-atualizar">Atualizar preços</button>
+          </div>
+        </div>
+        <p class="nota">O menor anúncio de cada item, em Coins e em Gemas, lido pela conta escolhida. As duas colunas da
+          direita já descontam a comissão de 15% de quem vende. <b>Coins por Gema</b>: quanto custa, em Coins, cada Gema
+          líquida que entra comprando o item em Coins e revendendo em Gemas (menor = melhor). <b>Coins por Gema
+          vendida</b>: o caminho contrário, comprar em Gemas e revender em Coins (maior = melhor). É o menor preço da
+          vitrine: confira a quantidade e o histórico de vendas no jogo antes de operar.</p>
+        <div class="barra-radar">
+          <label><input type="checkbox" id="radar-ativo"> <b>Radar de ofertas</b></label>
+          <label>Desconto mínimo <input id="radar-desconto" type="number" min="1" max="95"> %</label>
+          <label>Moeda <select id="radar-moeda"><option value="orb">Gemas</option><option value="gold">Coins</option><option value="ambas">As duas</option></select></label>
+          <label>Mín. vendas/semana <input id="radar-vendas" type="number" min="0"></label>
+          <label><input type="checkbox" id="radar-auto"> Atualizar sozinha a cada <input id="radar-minutos" type="number" min="1" max="60"> min</label>
+          <small id="radar-status" class="nota"></small>
+        </div>
+        <div class="cabecalho-log">
+          <h2>Ofertas para aprovar <small id="contagem-sugestoes" class="placar"></small></h2>
+          <button id="limpar-sugestoes" class="discreto">Limpar</button>
+        </div>
+        <div id="sugestoes" class="sugestoes"><p class="vazio">Nenhuma oferta agora. Ligue o Radar de ofertas (ou uma regra "abaixo da média" com aprovação).</p></div>
+        <div class="mercado-filtros">
+          <div id="mercado-cats" class="mercado-cats" role="group" aria-label="Categorias"></div>
+          <label class="linha curta"><input type="checkbox" id="mercado-ambas"> Só itens à venda nas duas moedas</label>
+        </div>
+        <div id="mercado-tabela" class="mercado-tabela"><p class="vazio">Clique em "Atualizar preços" com uma conta conectada.</p></div>
+        <div class="mercado-secao">
+          <div class="cabecalho-log">
+            <h2>Mercado nas últimas 24 h <small id="hg-status" class="placar"></small></h2>
+          </div>
+          <p class="nota">Vendas do mercado do jogo, lidas pela conta escolhida em "Atualizar preços". Só pede enquanto esta aba estiver aberta (ao abrir e a cada 1 min). Vendedor e comprador não aparecem.</p>
+          <div class="colunas-mercado">
+            <div><h3>Vendas recentes</h3><div id="hg-recentes" class="hg-lista"></div></div>
+            <div><h3>Mais vendidos em 24 h</h3><div id="hg-top" class="hg-lista"></div></div>
+          </div>
+        </div>
+        <div class="mercado-secao">
+          <div class="cabecalho-log">
+            <h2>Histórico de compras <small id="hist-contagem" class="placar"></small></h2>
+          </div>
+          <div class="filtros-historico">
+            <div id="hist-contas" class="filtro-conta" role="group" aria-label="Conta"></div>
+            <div id="hist-periodo" class="filtro-conta" role="group" aria-label="Período"></div>
+          </div>
+          <p id="hist-totais" class="totais-historico"></p>
+          <div id="hist-lista" class="hist-lista"></div>
+          <div class="hist-rodape"><button id="hist-mais" class="discreto" hidden>Carregar mais</button></div>
+          <p class="nota">Sorteio perdido não gasta saldo. "Sem resposta" quer dizer que o jogo não confirmou a compra: confira no jogo se ela saiu.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="vista-lives" class="vista">
+      <div class="colunas">
+        <div class="painel">
+          <h2>Lives oficiais</h2>
+          <p class="nota">Lido do painel "Bônus Twitch" do próprio jogo, em cada conta. Se você ligar abaixo, a central
+            abre sozinha a live que entrar no ar, na conta em que você assiste.</p>
+          <label class="linha"><b>Abrir as lives na conta</b>
+            <select id="lv-conta"></select>
+          </label>
+          <label class="linha">Qualidade das lives da Twitch
+            <select id="lv-qualidade">
+              <option value="chat">Só chat (sem vídeo, o mais leve)</option>
+              <option value="160p30">160p (leve)</option>
+              <option value="360p30">360p</option>
+              <option value="480p30">480p</option>
+              <option value="auto">Automática (pesada)</option>
+            </select>
+          </label>
+          <p class="nota">O bônus da Twitch conta quem está no chat. As lives abertas antes de mudar a qualidade
+            continuam como estavam: feche e abra de novo.</p>
+          <div class="auto-live">
+            <label><input type="checkbox" id="lv-auto"> Abrir sozinha a live que entrar no ar, na conta</label>
+            <select id="lv-auto-conta"></select>
+            <small>Só abre se essa conta estiver logada na Twitch (ou com a Kick vinculada no jogo), e só lives que
+              começarem com o app aberto. As outras contas continuam com o "Abrir todas".</small>
+          </div>
+          <div id="lista-lives" class="lista-lives"></div>
+          <h3>Bônus por conta</h3>
+          <div id="bonus-contas" class="bonus-contas"></div>
+        </div>
+        <div class="painel painel-player">
+          <div class="cabecalho-log">
+            <h2>Assistindo</h2>
+            <div class="acoes-mercado">
+              <label title="A cada 5 minutos: fecha as lives que saíram do ar e recarrega (F5) as que seguem no ar, para continuar pontuando"><input type="checkbox" id="lv-manter"> Conferir a cada 5 min</label>
+              <small id="lv-manutencao" class="nota"></small>
+              <button id="mutar-lives">🔊 Mutar todas</button>
+              <button id="fechar-lives">Fechar todas</button>
+            </div>
+          </div>
+          <div id="players" class="players"><p class="vazio">Nenhuma live aberta.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="vista-config" class="vista">
+      <div class="painel painel-config">
+        <h2>Tela</h2>
+        <label class="linha">Escala da interface
+          <select id="escala-interface">
+            <option value="auto">Automático (a maior que cabe na tela)</option>
+            <option value="1">100%</option>
+            <option value="0.9">90%</option>
+            <option value="0.8">80%</option>
+            <option value="0.75">75%</option>
+          </select>
+        </label>
+        <p class="nota">Diminui a central inteira (as lives e o jogo das contas não mudam). O Automático escolhe a escala
+          pelo tamanho do monitor onde a janela está.</p>
+        <div class="config-celular">
+          <div class="celular-cabeca">
+            <div>
+              <h3>Painel no celular</h3>
+              <p class="nota">Mostra os números das suas contas no celular, numa página só de leitura.</p>
+              <p class="nota aviso-celular">Funciona só na mesma rede Wi-Fi. Quem tiver o QR vê os números das suas contas (não vê senhas nem logins). O Windows pode pedir para liberar no firewall.</p>
+              <p class="nota">Ao abrir o app com o painel ligado, um código novo é gerado: o QR antigo deixa de valer.</p>
+            </div>
+            <button id="celular-chave" class="chave" role="switch" aria-checked="false" title="Liga o painel no celular"></button>
+          </div>
+          <div class="celular-corpo">
+            <div class="celular-dados">
+              <span id="celular-endereco" class="celular-endereco">Desligado</span>
+              <div class="celular-acoes">
+                <button id="celular-novo" class="discreto" disabled>Gerar novo código</button>
+                <small id="celular-status" class="nota" role="status"></small>
+              </div>
+            </div>
+            <img id="celular-qr" class="celular-qr" alt="QR code do painel no celular" hidden>
+          </div>
+        </div>
+        <h2>Contas e logins</h2>
+        <p class="nota">As senhas são criptografadas pelo sistema e nunca aparecem de volta aqui. "Entrar" abre a página
+          de login na sessão da conta e preenche usuário e senha; a verificação anti-robô e o botão de entrar ficam com você.
+          Se preferir, deixe a senha em branco e faça o login na mão: ele fica salvo naquela conta do mesmo jeito.
+          <b>Login pelo Google?</b> Use "Pelo navegador": ele usa o login que já está no navegador e perfil escolhidos em cada
+          conta (Chrome, Edge, Brave, Opera ou Vivaldi, com a extensão da pasta <code>extensao-chrome</code>, veja o README).</p>
+        <div id="config-contas" class="config-contas"></div>
+
+        <div class="config-atualizacao">
+          <div>
+            <h3>Atualizações</h3>
+            <p class="nota">Você está na versão <b id="versao-app">…</b>. O app procura sozinho ao abrir e a cada 6 horas.</p>
+          </div>
+          <span id="estado-atualizacao" class="nota" role="status"></span>
+          <button id="checar-atualizacao">Procurar atualização</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="especies" class="modal" hidden>
+    <div class="modal-caixa">
+      <div class="modal-topo">
+        <h2>Pokémon</h2>
+        <input id="especies-busca" placeholder="Buscar por nome ou número…" autocomplete="off">
+        <button id="especies-qualquer">Qualquer espécie</button>
+        <button id="especies-fechar">Fechar</button>
+      </div>
+      <div id="especies-abas" class="catalogo-abas"></div>
+      <div id="especies-grade" class="catalogo-grade especies-grade"></div>
+      <p id="especies-nota" class="nota"></p>
+    </div>
+  </div>
+
+  <div id="catalogo" class="modal" hidden>
+    <div class="modal-caixa">
+      <div class="modal-topo">
+        <h2>Itens do RMT</h2>
+        <input id="catalogo-busca" placeholder="Buscar item…" autocomplete="off">
+        <button id="catalogo-fechar">Fechar</button>
+      </div>
+      <div id="catalogo-abas" class="catalogo-abas"></div>
+      <div id="catalogo-grade" class="catalogo-grade"></div>
+      <p id="catalogo-nota" class="nota"></p>
+    </div>
+  </div>
+
+  <script src="novidades.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

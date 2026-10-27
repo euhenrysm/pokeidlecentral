@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "PokéIdle Central - Autorizar sessão",
+  "version": "0.2.0",
+  "description": "Passa, com a sua autorização, a sessão do PokéIdle, da Twitch ou da Kick deste navegador para o PokéIdle Central no seu PC.",
+  "permissions": ["cookies"],
+  "host_permissions": [
+    "https://pokeidle.io/*",
+    "https://*.pokeidle.io/*",
+    "https://www.twitch.tv/*",
+    "https://*.twitch.tv/*",
+    "https://kick.com/*",
+    "https://*.kick.com/*",
+    "http://127.0.0.1/*"
+  ],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    {
+      "matches": ["https://pokeidle.io/*", "https://www.twitch.tv/*", "https://kick.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ]
+}

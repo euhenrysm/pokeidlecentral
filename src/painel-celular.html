@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>PokéIdle Central</title>
+  <style>
+    /* Cores do tema da central (styles.css, :root). A página não carrega nada de fora. */
+    :root {
+      --bg: #0f1011;
+      --painel: #18191b;
+      --painel-2: #202124;
+      --painel-3: #2a2b2f;
+      --borda: #2b2c30;
+      --borda-forte: #3d3e44;
+      --texto: #f3f4f1;
+      --suave: #8d8f96;
+      --destaque: #d4f55a;
+      --ok: #8fe36b;
+      --erro: #ff6b5e;
+      --aviso: #ffb547;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--bg); color: var(--texto); }
+    body {
+      font: 500 14px/1.4 "Segoe UI", system-ui, -apple-system, sans-serif;
+      font-variant-numeric: tabular-nums;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    .topo {
+      position: sticky; top: 0; z-index: 1;
+      display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+      padding: 12px 16px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--borda);
+    }
+    .marca { font-weight: 700; font-size: 16px; }
+    .marca b { color: var(--destaque); }
+    .estado {
+      font-size: 12px; font-weight: 600; white-space: nowrap;
+      padding: 4px 10px; border-radius: 999px;
+      border: 1px solid var(--borda-forte); color: var(--suave);
+    }
+    .estado.ao-vivo { color: var(--ok); border-color: var(--ok); }
+    .estado.erro { color: var(--erro); border-color: var(--erro); }
+    main { max-width: 1100px; margin: 0 auto; padding: 12px 16px 28px; }
+    .aviso {
+      margin: 0 0 12px; padding: 10px 12px; border-radius: 12px;
+      background: var(--painel-2); border: 1px solid var(--borda);
+      color: var(--aviso); overflow-wrap: anywhere;
+    }
+    .aviso[hidden] { display: none; }
+    .atualizado { margin: 0 0 12px; color: var(--suave); font-size: 12px; }
+    .cartoes { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+    @media (min-width: 720px) {
+      .cartoes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    .cartao {
+      min-width: 0;
+      display: flex; flex-direction: column; gap: 12px;
+      padding: 14px;
+      background: var(--painel);
+      border: 1px solid var(--borda);
+      border-radius: 18px;
+    }
+    .cartao.off { opacity: .55; }
+    .cartao-topo { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .inicial {
+      flex: none; width: 36px; height: 36px; border-radius: 50%;
+      display: grid; place-items: center;
+      background: var(--painel-3); font-weight: 700;
+    }
+    .cabeca { flex: 1; min-width: 0; }
+    .cabeca b, .cabeca small {
+      display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .cabeca b { font-size: 16px; }
+    .cabeca small { color: var(--suave); font-size: 12px; }
+    .pilula {
+      flex: none; font-size: 11px; font-weight: 700; white-space: nowrap;
+      padding: 3px 8px; border-radius: 999px;
+      background: var(--painel-3); color: var(--suave);
+    }
+    .pilula.on { background: var(--ok); color: #15170d; }
+    .pokemon {
+      display: flex; align-items: center; gap: 12px; min-width: 0;
+      padding: 10px; border-radius: 14px; background: var(--painel-2);
+    }
+    .pokemon img, .sem-pokemon {
+      flex: none; width: 64px; height: 64px;
+    }
+    .pokemon img { object-fit: contain; image-rendering: pixelated; }
+    .sem-pokemon { display: grid; place-items: center; color: var(--suave); }
+    .pokemon-txt { flex: 1; min-width: 0; }
+    .pokemon-txt b {
+      display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .pokemon-txt b.shiny { color: var(--destaque); }
+    .pokemon-txt .nv { display: block; color: var(--suave); font-size: 12px; }
+    .barra { height: 8px; margin-top: 6px; border-radius: 999px; background: var(--painel-3); overflow: hidden; }
+    .barra i { display: block; height: 100%; background: var(--ok); }
+    .barra i.baixo { background: var(--erro); }
+    .grade { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+    .metrica { min-width: 0; padding: 8px 10px; border-radius: 12px; background: var(--painel-2); }
+    .metrica small {
+      display: block; color: var(--suave); font-size: 11px;
+      text-transform: uppercase; letter-spacing: .4px;
+    }
+    .metrica b { display: block; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .linhas { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+    .linha { display: flex; justify-content: space-between; gap: 10px; min-width: 0; }
+    .linha > span:first-child { color: var(--suave); white-space: nowrap; }
+    .linha > span:last-child { text-align: right; min-width: 0; overflow-wrap: anywhere; }
+    .rotulo { color: var(--suave); font-size: 11px; text-transform: uppercase; letter-spacing: .4px; }
+    .drops { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 10px; font-size: 12px; }
+    .drops > div { display: flex; justify-content: space-between; gap: 6px; min-width: 0; color: var(--suave); }
+    .drops > div > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .drops > div.tem b { color: var(--destaque); }
+    .selos { display: flex; flex-wrap: wrap; gap: 6px; }
+    .selo {
+      font-size: 12px; padding: 3px 9px; border-radius: 999px;
+      border: 1px solid var(--borda-forte); color: var(--suave);
+    }
+    .selo.on { color: var(--destaque); border-color: var(--destaque); }
+    .vazio { padding: 30px 10px; text-align: center; color: var(--suave); }
+  </style>
+</head>
+<body>
+  <header class="topo">
+    <div class="marca">PokéIdle <b>Central</b></div>
+    <span id="estado" class="estado">Aguardando</span>
+  </header>
+  <main>
+    <p id="aviso" class="aviso" role="status" hidden></p>
+    <p id="atualizado" class="atualizado"></p>
+    <section id="cartoes" class="cartoes" aria-live="polite"></section>
+  </main>
+  <script>
+    (function () {
+      'use strict';
+
+      // O código vem no fragmento da URL (#t=...), que o navegador não manda ao servidor. Fica na
+      // sessão da aba e sai da barra de endereço logo depois de lido.
+      var CHAVE = 'pokeidle-central-painel';
+      var INTERVALO_MS = 3000;
+      var LIMITE_SEM_DADOS_MS = 15000;
+      var CODIGO = /^[0-9a-f]{64}$/;
+
+      var estadoEl = document.getElementById('estado');
+      var avisoEl = document.getElementById('aviso');
+      var atualizadoEl = document.getElementById('atualizado');
+      var cartoesEl = document.getElementById('cartoes');
+      var codigo = lerCodigo();
+      var timer = null;
+
+      function lerCodigo() {
+        var cod = null;
+        var m = /(?:^|[#&])t=([^&]*)/.exec(location.hash || '');
+        if (m && CODIGO.test(m[1])) {
+          cod = m[1];
+          try { sessionStorage.setItem(CHAVE, cod); } catch (e) { /* sem sessionStorage: segue com o código da barra */ }
+        }
+        if (location.hash) {
+          try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* sem histórico: segue */ }
+        }
+        if (!cod) {
+          try { cod = sessionStorage.getItem(CHAVE); } catch (e) { cod = null; }
+        }
+        return CODIGO.test(cod || '') ? cod : null;
+      }
+
+      // Monta um elemento com texto (sempre como texto, nunca como HTML) ou com outros elementos.
+      function el(tag, classe) {
+        var e = document.createElement(tag);
+        if (classe) e.className = classe;
+        function anexar(f) {
+          if (f === null || f === undefined || f === false) return;
+          if (Array.isArray(f)) return f.forEach(anexar);
+          e.appendChild(f instanceof Node ? f : document.createTextNode(String(f)));
+        }
+        for (var i = 2; i < arguments.length; i++) anexar(arguments[i]);
+        return e;
+      }
+
+      function formatar(n) {
+        return typeof n === 'number' && n >= 0 ? n.toLocaleString('pt-BR') : '—';
+      }
+      function curto(n) {
+        if (typeof n !== 'number' || n < 0) return '—';
+        if (n >= 1e9) return (n / 1e9).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + 'B';
+        if (n >= 1e6) return (n / 1e6).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + 'M';
+        if (n >= 1e4) return (n / 1e3).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + 'k';
+        return n.toLocaleString('pt-BR');
+      }
+      function taxa(n, online) {
+        if (!online) return '—';
+        return n == null ? 'calculando…' : curto(n) + '/h';
+      }
+      function duracao(ms) {
+        var s = Math.max(0, Math.floor(ms / 1000));
+        var h = Math.floor(s / 3600);
+        var m = Math.floor((s % 3600) / 60);
+        return h + ':' + String(m).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+      }
+
+      function definirEstado(texto, classe) {
+        estadoEl.textContent = texto;
+        estadoEl.className = 'estado' + (classe ? ' ' + classe : '');
+      }
+      function mostrarAviso(texto) {
+        avisoEl.textContent = texto || '';
+        avisoEl.hidden = !texto;
+      }
+
+      function metrica(rotulo, valor) {
+        return el('div', 'metrica', el('small', '', rotulo), el('b', '', valor));
+      }
+      function linha(rotulo, valor) {
+        return el('div', 'linha', el('span', '', rotulo), el('span', '', valor));
+      }
+      function estoque(x) {
+        return x ? (x.nome || 'Item') + ' · restam ' + formatar(x.qtd) : '—';
+      }
+
+      function cartao(c) {
+        var online = c.online === true;
+        var nome = c.nome || 'Conta';
+        var titulo = c.nick || nome;
+        var subtitulo = [c.nick && c.nome !== c.nick ? c.nome : null,
+          c.nivel != null ? 'Treinador Nv. ' + formatar(c.nivel) : null].filter(Boolean).join(' · ');
+
+        var topo = el('div', 'cartao-topo',
+          el('div', 'inicial', titulo.charAt(0).toUpperCase()),
+          el('div', 'cabeca', el('b', '', titulo), el('small', '', subtitulo)),
+          el('span', 'pilula' + (online ? ' on' : ''), online ? 'Online' : 'Offline'));
+
+        var pk = c.pokemon;
+        var caixaPk = el('div', 'pokemon');
+        if (pk && pk.imagem) {
+          var img = document.createElement('img');
+          img.alt = '';
+          img.referrerPolicy = 'no-referrer';
+          img.src = pk.imagem;
+          caixaPk.appendChild(img);
+        } else {
+          caixaPk.appendChild(el('div', 'sem-pokemon', online ? '…' : '—'));
+        }
+        var txtPk = el('div', 'pokemon-txt');
+        if (pk) {
+          var pct = pk.hp != null && pk.hpMax ? Math.max(0, Math.min(100, Math.round((pk.hp / pk.hpMax) * 100))) : null;
+          var barra = el('div', 'barra');
+          var preench = el('i', pct != null && pct < 30 ? 'baixo' : '');
+          preench.style.width = (pct == null ? 0 : pct) + '%';
+          barra.appendChild(preench);
+          txtPk.appendChild(el('b', pk.shiny ? 'shiny' : '', pk.nome));
+          txtPk.appendChild(el('span', 'nv', pk.nivel != null ? 'Nv. ' + formatar(pk.nivel) + (pk.shiny ? ' · shiny' : '') : ''));
+          txtPk.appendChild(barra);
+          txtPk.appendChild(el('span', 'nv', pct != null ? 'HP ' + pct + '%' : 'HP —'));
+        } else {
+          txtPk.appendChild(el('b', '', online ? 'Pokémon em campo' : '—'));
+        }
+        caixaPk.appendChild(txtPk);
+
+        var drops = (c.drops || []).map(function (d) {
+          return el('div', d.qtd ? 'tem' : '', el('span', '', d.nome), el('b', '', formatar(d.qtd)));
+        });
+
+        return el('article', 'cartao' + (online ? '' : ' off'),
+          topo,
+          caixaPk,
+          el('div', 'grade',
+            metrica('XP/h', taxa(c.xpHora, online)),
+            metrica('Gold/h', taxa(c.goldHora, online)),
+            metrica('Ouro', curto(c.gold)),
+            metrica('Gemas', curto(c.gemas)),
+            metrica('Abates', formatar(c.abates)),
+            metrica('Capturas', formatar(c.capturas))),
+          el('div', 'linhas',
+            linha('Hunt', c.hunt || 'sem hunt'),
+            linha('Sessão', c.sessaoMs != null ? duracao(c.sessaoMs) : '—'),
+            linha('Poção', estoque(c.pocao)),
+            linha('Bola', estoque(c.bola))),
+          el('div', 'rotulo', 'Drops raros'),
+          el('div', 'drops', drops),
+          el('div', 'selos',
+            el('span', 'selo' + (c.sniperLigado ? ' on' : ''), c.sniperLigado ? 'Sniper ligado' : 'Sniper desligado'),
+            el('span', 'selo' + (c.capturaLigada ? ' on' : ''), c.capturaLigada ? 'Captura ligada' : 'Captura desligada')));
+      }
+
+      function desenhar(dados) {
+        if (!dados.geradoEm) {
+          definirEstado('Aguardando', '');
+          atualizadoEl.textContent = 'A central ainda não mandou os números. Deixe o app aberto com o painel ligado.';
+          cartoesEl.replaceChildren(el('p', 'vazio', 'Aguardando os dados…'));
+          return;
+        }
+        var hora = new Date(dados.geradoEm).toLocaleTimeString('pt-BR');
+        atualizadoEl.textContent = 'Central atualizada às ' + hora;
+        var velho = typeof dados.idadeMs === 'number' && dados.idadeMs > LIMITE_SEM_DADOS_MS;
+        if (velho) {
+          definirEstado('Sem dados novos', 'erro');
+          mostrarAviso('A central não manda números há ' + Math.round(dados.idadeMs / 1000) + ' s. Deixe o app aberto com o painel ligado.');
+        } else {
+          definirEstado('Ao vivo', 'ao-vivo');
+          mostrarAviso('');
+        }
+        var contas = Array.isArray(dados.contas) ? dados.contas : [];
+        cartoesEl.replaceChildren(...contas.map(cartao));
+      }
+
+      function atualizar() {
+        if (document.visibilityState === 'hidden') return;
+        if (!codigo) {
+          definirEstado('Sem código', 'erro');
+          mostrarAviso('Escaneie o QR code da central para ver os números.');
+          return;
+        }
+        fetch('/api/estado', { cache: 'no-store', headers: { Authorization: 'Bearer ' + codigo } })
+          .then(function (r) {
+            if (r.status === 401) {
+              pararAtualizacao();
+              definirEstado('Código inválido', 'erro');
+              mostrarAviso('Código inválido. Escaneie o QR de novo na central.');
+              return null;
+            }
+            if (!r.ok) throw new Error('resposta ' + r.status);
+            return r.json();
+          })
+          .then(function (dados) {
+            if (dados) desenhar(dados);
+          })
+          .catch(function () {
+            definirEstado('Desconectado', 'erro');
+            mostrarAviso('Desconectado. Confira se o celular ainda está na mesma rede Wi-Fi da central e se o painel está ligado.');
+          });
+      }
+
+      function pararAtualizacao() {
+        clearInterval(timer);
+        timer = null;
+      }
+
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible' && timer) atualizar();
+      });
+
+      if (codigo) {
+        atualizar();
+        timer = setInterval(atualizar, INTERVALO_MS);
+      } else {
+        atualizar();
+      }
+    })();
+  </script>
+</body>
+</html>

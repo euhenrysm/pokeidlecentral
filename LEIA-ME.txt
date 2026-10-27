@@ -1,0 +1,24 @@
+PokéIdle Central
+================
+
+1. Instalar
+   Dê dois cliques em "PokeIdle-Central-Setup-X.Y.Z.exe". Ele instala e cria o atalho na área de trabalho.
+   O Windows pode avisar "O Windows protegeu o computador" (o app não é assinado):
+   clique em "Mais informações" > "Executar assim mesmo".
+
+2. Atualizações
+   O app procura versão nova sozinho ao abrir e a cada 6 horas, e baixa em segundo plano.
+   Quando estiver pronta, aparece no topo "Reiniciar e atualizar". Se você não clicar,
+   ela entra quando você fechar o app. Nada é apagado: logins e regras continuam.
+
+3. Extensão do navegador (só para quem entra no jogo com conta Google)
+   Na pasta do app (botão direito no atalho > Abrir local do arquivo), dê dois cliques em
+   "INSTALAR EXTENSAO NO CHROME.bat", escolha o navegador (Chrome, Edge, Brave, Opera, Opera GX
+   ou Vivaldi) e siga os 3 passos que ele mostra. No app, aba Config, escolha em cada conta o
+   navegador e o perfil que o "Pelo navegador" abre.
+
+4. Onde ficam os dados
+   Logins, regras do sniper e configurações ficam em %APPDATA%\pokeidle-central.
+   Desinstalar ou atualizar o app não apaga essa pasta.
+
+Abra o app uma vez só: duas cópias abertas brigam pela mesma pasta de dados.

@@ -1,0 +1,10 @@
+node_modules/
+dist/
+*.zip
+ferramentas-licenca/
+divulgacao/
+.claude/
+credenciais.json
+config.json
+licenca.dat
+*.log

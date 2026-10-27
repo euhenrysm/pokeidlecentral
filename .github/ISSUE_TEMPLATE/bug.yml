@@ -1,0 +1,36 @@
+name: Relatar um problema
+description: Algo não funciona como deveria no PokéIdle Central.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado por avisar! **Nunca** cole aqui senhas, cookies, o `config.json`, o `credenciais.json` ou logs com dados da sua conta.
+  - type: input
+    id: versao
+    attributes:
+      label: Versão do app
+      description: Aparece na aba Config.
+      placeholder: 0.3.0
+    validations:
+      required: true
+  - type: dropdown
+    id: sistema
+    attributes:
+      label: Sistema
+      options: [Windows, Linux]
+    validations:
+      required: true
+  - type: textarea
+    id: oque
+    attributes:
+      label: O que aconteceu
+      description: O que você fez, o que esperava e o que aconteceu. Prints ajudam (esconda nicks e saldos se quiser).
+    validations:
+      required: true
+  - type: textarea
+    id: registro
+    attributes:
+      label: Linhas do Registro (opcional)
+      description: As linhas do Registro relacionadas ao problema.
+      render: text
