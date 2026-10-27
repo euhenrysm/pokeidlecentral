@@ -22,6 +22,16 @@ jobs:
           node-version: 22
       - run: npm install --no-audit --no-fund
       - run: npm run check
+      # O GitHub só publica Release com tag existente: cria a tag v<versão> no commit atual, se ainda não houver.
+      - name: Tag da versão
+        shell: bash
+        run: |
+          v="v$(node -p "require('./package.json').version")"
+          if git ls-remote --exit-code --tags origin "refs/tags/$v" >/dev/null; then
+            echo "A tag $v já existe."
+          else
+            git tag "$v" && git push origin "$v"
+          fi
 
   windows:
     needs: testes
